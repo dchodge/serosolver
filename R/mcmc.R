@@ -57,7 +57,6 @@
 run_MCMC <- function(par_tab,
                      titre_dat,
                      vaccination_histories=NULL,
-                     vaccination_histories_mat=NULL,
                      antigenic_map=NULL,
                      strain_isolation_times=NULL,
                      mcmc_pars = c(),
@@ -83,6 +82,8 @@ run_MCMC <- function(par_tab,
       par_tab <- base::rbind(par_tab, list("vac_flag", 0, 1, 0.1, 0, 1,  0, 1, 0))
   }
 
+  # Maybe check
+  vaccination_info <- get_vaccination_info(vaccination_histories)
 
   ## Sort out MCMC parameters --------------------------------------
   ###################################################################
@@ -194,7 +195,7 @@ run_MCMC <- function(par_tab,
   n_groups <- length(unique(group_ids_vec))
 
   if (!is.null(mu_indices)) {
-    prior_mu <- create_prior_mu(par_tab_cold)
+    prior_mu <- create_prior_mu(par_tab)
   }
   if (measurement_random_effects) {
       prior_shifts <- create_prob_shifts(par_tab)
@@ -228,12 +229,13 @@ run_MCMC <- function(par_tab,
     prior_probab
   }
 
+  cat("here2")
+
     ## Create posterior calculating function
   posterior_simp <- protect(CREATE_POSTERIOR_FUNC(
     par_tab,
     titre_dat,
-    vaccination_histories,
-    vaccination_histories_mat,
+    vaccination_info,
     antigenic_map,
     strain_isolation_times,
     version = version,
@@ -250,13 +252,14 @@ run_MCMC <- function(par_tab,
     prior_func <- CREATE_PRIOR_FUNC(par_tab)
   }
 
+  cat("here2")
+
   ## If using gibbs proposal on infection_history, create here
   if (hist_proposal == 2) {
     proposal_gibbs <- protect(CREATE_POSTERIOR_FUNC(
       par_tab,
       titre_dat,
-      vaccination_histories,
-      vaccination_histories_mat,
+      vaccination_info,
       antigenic_map,
       strain_isolation_times,
       version = version,
@@ -741,6 +744,7 @@ run_MCMC <- function(par_tab,
     ##############################
     ## If within adaptive period, need to do some adapting!
     if ((i + i_prev) > (adaptive_period + burnin + i_prev) & i %% opt_freq == 0) {
+      message(cat("Current posterior : ", total_posterior, "\n", sep = "\t"))
       pcur <- tempaccepted / tempiter ## get current acceptance rate
       message(cat("Pcur: ", signif(pcur, 3), "\n", sep = "\t"))
       message(cat("Step sizes: ", signif(steps, 3), "\n", sep = "\t"))
@@ -794,8 +798,6 @@ run_MCMC <- function(par_tab,
         }
         pcur_hist <- histaccepted / histiter
         
-        ##histadd_overall <- histadd_overall + histiter_add
-        ##histmove_overall <- histmove_overall + histiter_move
         
         pcur_hist_add <- histaccepted_add / histiter_add
         pcur_hist_move <- histaccepted_move / histiter_move
@@ -832,14 +834,15 @@ run_MCMC <- function(par_tab,
             }
         }
         ## Look at infection history proposal sizes
-        message(cat("Pcur hist add: ", head(signif(pcur_hist_add, 3)), "\n", sep = "\t"))
+      message(cat("Current posterior : ", total_posterior, "\n", sep = "\t"))
+      #  message(cat("Pcur hist add: ", head(signif(pcur_hist_add, 3)), "\n", sep = "\t"))
         message(cat("No. infections sampled: ", head(n_infs_vec), "\n", sep = "\t"))
-        message(cat("Pcur hist move: ", head(signif(pcur_hist_move, 3)), "\n", sep = "\t"))
+      #  message(cat("Pcur hist move: ", head(signif(pcur_hist_move, 3)), "\n", sep = "\t"))
         message(cat("Move sizes: ", head(move_sizes), "\n", sep = "\t"))
         message(cat("Pcur theta: ", signif(pcur, 3), "\n", sep = "\t"))
         message(cat("Step sizes: ", signif(steps, 3), "\n", sep = "\t"))
-        message(cat("Pcur group inf hist swap: ", signif(pcur_hist_swap, 3), "\n", sep = "\t"))
-        message(cat("Group inf hist swap propn: ", year_swap_propn, "\n", sep = "\t"))
+       # message(cat("Pcur group inf hist swap: ", signif(pcur_hist_swap, 3), "\n", sep = "\t"))
+       # message(cat("Group inf hist swap propn: ", year_swap_propn, "\n", sep = "\t"))
         pcur_hist <- histaccepted / histiter ## Overall
         ## If not accepting, send a warning
         if (all(pcur[!is.nan(pcur)] == 0)) {
@@ -854,7 +857,6 @@ run_MCMC <- function(par_tab,
     ## HOUSEKEEPING
     #######################
     if (no_recorded == save_block) {
-      cat("I am here being saved!", "\n")
       cat("mcmc_chain_file: ", mcmc_chain_file)
 
         data.table::fwrite(as.data.frame(save_chain[1:(no_recorded - 1), ]),

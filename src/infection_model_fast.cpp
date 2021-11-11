@@ -26,7 +26,7 @@
 // [[Rcpp::export(rng = false)]]
 NumericVector titre_data_fast(NumericVector theta,
 			      const IntegerMatrix infection_history_mat,
-            const DataFrame vaccination_histories,
+            const List vaccination_history_info,
 			      const NumericVector circulation_times,
 			      const IntegerVector circulation_times_indices,
 			      const NumericVector sample_times,
@@ -34,21 +34,18 @@ NumericVector titre_data_fast(NumericVector theta,
 			      const IntegerVector cum_nrows_per_individual_in_data, // How many rows in the titre data correspond to each individual?
 			      const IntegerVector nrows_per_blood_sample, // Split the sample times and runs for each individual
 			      const IntegerVector measurement_strain_indices, // For each titre measurement, corresponding entry in antigenic map
-			      const NumericVector antigenic_map_long, // add in antigenic_map_long_vac ?
-			      const NumericVector antigenic_map_short,
-            const NumericVector antigenic_map_long_vac, 
-			      const NumericVector antigenic_map_short_vac,
+			      const List antigenic_maps, // add in antigenic_map_long_vac ?
 			      const NumericVector antigenic_distances,	// Currently not doing anything, but has uses for model extensions		      
 			      const NumericVector mus,
 			      const IntegerVector boosting_vec_indices,
 			      bool boost_before_infection = false
 			      ){
+
+  Rcpp::Rcout << "Start of titre_data_fast" << std::endl;
   // Dimensions of structures
-  //Rcpp::Rcout << "titre_data_fast: START" << std::endl;
   int n = infection_history_mat.nrow();
   int number_strains = infection_history_mat.ncol();
   int total_titres = measurement_strain_indices.size();
-   // Rcpp::Rcout << "Here 1" << std::endl;
 
   // To track how far through the larger vectors we move for each individual
   int index_in_samples;
@@ -61,311 +58,153 @@ NumericVector titre_data_fast(NumericVector theta,
   NumericVector infection_times;
   IntegerVector infection_strain_indices_tmp;
 
+  // Only use the vacciation that actually happened
+  NumericMatrix vac_history_matrix;
+  NumericVector vac_history_strains;
+  NumericVector vac_history_strains_indices;
+  bool vac_null_ind = false;
+  
+  Rcpp::Rcout << "Before definition of vac stuff" << std::endl;
 
-  // ====================================================== //
-  // =============== SETUP MODEL PARAMETERS =============== //
-  // ====================================================== //
-  // 1. Extract general parameters that apply to all models
-  // Pull out model parameters so only need to allocate once
-//  Rcpp::Rcout << "Sec 1" << std::endl;
-
-  double mu = theta["mu"];
-  double mu_short = theta["mu_short"];
-  double wane = theta["wane"];
-  double tau = theta["tau"];
-  double min_titre = 0; //theta["min_titre"];
-    //Rcpp::Rcout << "Here 2" << std::endl;
-
-  // 2. Extract model parameters that are for specific mechanisms
-  //    set a boolean flag to choose between model versions
- // Rcpp::Rcout << "Sec 2" << std::endl;
-
-  // Alternative waning function
-  int wane_type = theta["wane_type"]; 
-  bool alternative_wane_func = wane_type == 1;
-  double kappa;
-  double t_change;
- if (alternative_wane_func){
-    kappa = theta["kappa"];
-    t_change = theta["t_change"];
+  if (vaccination_history_info["vac_history_matrix"] == R_NilValue) {
+    vac_null_ind = true;
+  } else {
+    vac_history_matrix = vaccination_history_info["vac_history_matrix"];
+    vac_history_strains = vaccination_history_info["vac_history_strains"];
+    vac_history_strains_indices = vaccination_history_info["vac_history_strains_indices"];
   }
  
-  // Titre dependent boosting
-  bool titre_dependent_boosting = theta["titre_dependent"] == 1;
-  double gradient;
-  double boost_limit;
-  if (titre_dependent_boosting) {
-    gradient = theta["gradient"];
-    boost_limit = theta["boost_limit"];
-  }
 
-  // Strain-specific boosting
+
+  IntegerVector vaccination_history;
+  LogicalVector indices_vac;
+  NumericVector vaccination_times;
+  IntegerVector vaccination_strain_indices_tmp;
+
+  bool base_function = true;
+  bool alternative_wane_func = false;
+  bool titre_dependent_boosting = false;
   bool strain_dep_boost = false;
   if (mus.size() > 1) {
-    strain_dep_boost = true;    
+    strain_dep_boost = false;    
   }
 
-  // Vaccination stuff  
-  int vac_flag_int = theta["vac_flag"];
-  bool vac_flag = vac_flag_int == 1;
-  double mu_vac = 0;
-  double mu_short_vac = 0;
-  double wane_vac = 0;
-  double tau_prev_vac = 0;
-  if (vac_flag) {
-        mu_vac = theta["mu_vac"];
-        mu_short_vac = theta["mu_short_vac"];
-        wane_vac = theta["wane_vac"];
-        tau_prev_vac = theta["tau_prev_vac"];
-  }
-
-
-  // 3. If not using one of the specific mechanism functions, set the base_function flag to TRUE
-  //Rcpp::Rcout << "Sec 3" << std::endl;
-  //    Rcpp::Rcout << "Sec 3" << std::endl;
-  bool base_function = !(alternative_wane_func ||
-			 titre_dependent_boosting ||
-			 strain_dep_boost);
-
-  
-    LogicalVector vac_flag_ind;
-    NumericVector vaccination_times;
-    IntegerVector vaccination_strain_indices_tmp;
-    NumericVector vaccinations_previous;
-      
-    std::vector<bool> vac_flag_ind_cpp;
-    std::vector<int> vaccination_times_cpp;
-    std::vector<int> vaccinations_previous_cpp;
-    std::vector<int> vaccination_strain_indices_tmp_cpp;
-
-    int Ni = vaccination_histories.nrows();
-
-    NumericVector individuals_vacc_vec(Ni);
-    NumericVector vac_virus_vec(Ni);
-    NumericVector vac_time_vec(Ni);
-    NumericVector vac_flag_vec(Ni);
-    NumericVector prev_vac_vec(Ni);
-
-      
-
-    if (vac_flag) { 
-      individuals_vacc_vec = vaccination_histories[0];
-      vac_virus_vec = vaccination_histories[1];
-      vac_time_vec = vaccination_histories[2];
-      vac_flag_vec = vaccination_histories[3];
-      prev_vac_vec = vaccination_histories[4];
-    } else {
-
-    }
-
-  std::vector<bool> indices_vac_individ(Ni);
-    // change these to cpp values
-  std::vector<double > vac_virus_vec_ind;
-  std::vector<double > vac_time_vec_ind;
-  std::vector<double > vaccination_strains;
-  std::vector<double > prev_vac_ind;    
-
-  // To store calculated titres
-  LogicalVector vac_flag_ind_bool;
+  double min_titre = 0;
   NumericVector predicted_titres(total_titres, min_titre);
-  // For each individual (n number of individuals)
-  bool indiv_indic;
+
+  // Create the Lists for cycling
+  List setup_dat = List::create(
+    _("measurement_strain_indices") = measurement_strain_indices, 
+    _["sample_times"] = sample_times,
+    _["nrows_per_blood_sample"] = nrows_per_blood_sample,
+    _["number_strains"] = number_strains
+  );
+
+  List indexing = List::create(
+      _("index_in_samples") = R_NilValue, 
+      _["end_index_in_samples"] = R_NilValue,
+      _["start_index_in_data"] = R_NilValue
+  );
+
+  List infection_info = List::create( 
+      _["inf_times"] = R_NilValue,
+      _["inf_indices"] = R_NilValue
+  );
+
+  List vaccination_info_i = List::create( 
+      _["vac_times"] = R_NilValue,
+      _["vac_indices"] = R_NilValue
+  );
+  Rcpp::Rcout << "Before individuals loop" << std::endl;
+
   for (int i = 1; i <= n; ++i) {
-   // Rcpp::Rcout << "Number: " << i << std::endl;
-
-    vac_virus_vec_ind.clear();
-    vac_time_vec_ind.clear();
-    vac_flag_ind_cpp.clear();
-    prev_vac_ind.clear();
-    vaccination_times_cpp.clear();
-    vaccinations_previous_cpp.clear();
-    vaccination_strain_indices_tmp_cpp.clear();
-
-  //  Rcpp::Rcout << "Sec 4: " << i << std::endl;
-
+    // Find infection times for individual i
     infection_history = infection_history_mat(i-1, _);
-  //  Rcpp::Rcout << "Sec 4i: " << i << std::endl;
-
-    //  vaccination_history = vaccination_history_mat(i-1,_);
-
     indices = infection_history > 0;
-   // Rcpp::Rcout << "Sec 4ii: " << i << std::endl;
-
     infection_times = circulation_times[indices];
-   // Rcpp::Rcout << "Sec 4iii: " << i << std::endl;
 
-  if (vac_flag) {
-      for (int k = 0; k < Ni; k++) { 
-        indiv_indic = individuals_vacc_vec[k] == i; // Get boolean values for the individual
-        // Extract the individuals details
-        if (indiv_indic == true) {
-          vac_virus_vec_ind.push_back(vac_virus_vec[k]);
-          vac_time_vec_ind.push_back(vac_time_vec[k]);
-          vac_flag_ind_cpp.push_back(vac_flag_vec[k]); // Boolean value for when person received previous vaccination
-          prev_vac_ind.push_back(prev_vac_vec[k]);
-        }
-      }
-      // Extract data on previous vacciantions
-      for (int k = 0; k < vac_flag_ind_cpp.size(); k++) {
-        if (vac_flag_ind_cpp[k] == true) {
-         // vaccination_strains.push_back(vac_virus_vec_ind[k]);
-          vaccination_times_cpp.push_back(vac_time_vec_ind[k]);
-          vaccinations_previous_cpp.push_back(prev_vac_ind[k]);
-          vaccination_strain_indices_tmp_cpp.push_back(circulation_times_indices[k]);
-        }
-      }
-
-      vac_flag_ind = vac_flag_ind_cpp;
-      vaccination_times = vaccination_times_cpp;
-      vaccinations_previous = vaccinations_previous_cpp;
-      vaccination_strain_indices_tmp = vaccination_strain_indices_tmp_cpp;
-    //  Rcpp::Rcout << "Sec 4v: " << i << std::endl;
-
-     // Rcpp::Rcout << "Redefine everytime: " << std::endl;
-
-    //  indices_vac_individ = individuals_vacc_vec == i;
-
-      //Rcpp::Rcout << "Sec 4v, Post definitions: " << std::endl;
-
-   //   vac_virus_vec_ind = vac_virus_vec[indices_vac_individ]; // length of total ind
-    //  vac_time_vec_ind = vac_time_vec[indices_vac_individ];    // length of total ind
-     // vac_flag_ind = vac_flag_vec[indices_vac_individ];     // length of total ind
-     // prev_vac_ind = prev_vac_vec[indices_vac_individ];     // length of total ind
-      
-    //  vac_flag_ind_bool = vac_flag_ind > 0;
-
-     // vaccination_times = vac_time_vec_ind[vac_flag_ind_bool];     // just length of vac
-     // vaccinations_previous = prev_vac_ind[vac_flag_ind_bool];
-      //indices_vac = vac_flag_ind > 0;
-     // Rcpp::Rcout << "Sec 4v, Post definitions: " << std::endl;
-
-   //   vaccination_strain_indices_tmp = circulation_times_indices[vac_flag_ind_bool];
-    } else {
-      vac_flag_ind_bool = false; 
-      vac_flag_ind = 0;
-      vaccination_times = 0;
-      vaccination_strain_indices_tmp = 0;
-      vaccinations_previous = 0;
+    // Find vaccination history for individual i
+    Rcpp::Rcout << "Get vaccination info for individual i" << std::endl;
+    if (!vac_null_ind) {
+      vaccination_history = vac_history_matrix(i-1, _);
+      indices_vac = vaccination_history > 0;
+      vaccination_times = vac_history_strains[indices_vac];
     }
-  
-   // Rcpp::Rcout << "Sec 5: " << i << std::endl;
-    // Only solve is this individual has had infections or vaccinations
-    if (infection_times.size() > 0 || vaccination_times.size() > 0) {
-   //   Rcpp::Rcout << "Sec 5: " << i << ". Get the indicies." << std::endl;
-      infection_strain_indices_tmp = circulation_times_indices[indices];
 
-      index_in_samples = rows_per_indiv_in_samples[i-1]; // count number of samples taken per individual including runs
-      end_index_in_samples = rows_per_indiv_in_samples[i] - 1;
-      start_index_in_data = cum_nrows_per_individual_in_data[i-1];
+    // Only run if either an infection or vaccination exists in person i's history
+    if (infection_times.size() > 0 || vaccination_times.size() > 0) {
+      // Infection info fill for individual i
+      infection_strain_indices_tmp = circulation_times_indices[indices];
+      infection_info["inf_times"] = infection_times;
+      infection_info["inf_indices"] = infection_strain_indices_tmp;
+
+      // Vaccination fill infro for individual i 
+      Rcpp::Rcout << "Get vaccination info for individual i if vac_times exists" << std::endl;
+      if (!vac_null_ind) {
+        vaccination_strain_indices_tmp = vac_history_strains_indices[indices_vac];
+        vaccination_info_i["vac_times"] = vaccination_times;
+        vaccination_info_i["vac_indices"] = vaccination_strain_indices_tmp;
+      }
+
+      // Indexing info fill
+      indexing["index_in_samples"] = rows_per_indiv_in_samples[i-1];
+      indexing["end_index_in_samples"] = rows_per_indiv_in_samples[i] - 1;
+      indexing["start_index_in_data"] = cum_nrows_per_individual_in_data[i-1];
 
       // ====================================================== //
       // =============== CHOOSE MODEL TO SOLVE =============== //
       // ====================================================== //
       // Go to sub function - this is where we have options for different models
       // Note, these are in "boosting_functions.cpp"
-// vac_strain, vac_times, vaccination_strain_indices_tmp
+      Rcpp::Rcout << "Just before base functions" << std::endl;
       if (base_function) {
-     // Rcpp::Rcout << "Sec 5: " << i << ". Call titre_data_fast_individual_base." << std::endl;
-	titre_data_fast_individual_base(predicted_titres, mu, mu_short,
-					wane, tau,
-                    vac_flag,
-               //     vac_flag_ind,
-                    mu_vac, mu_short_vac, wane_vac, tau_prev_vac,
-					infection_times,
-					infection_strain_indices_tmp,
-                    vaccination_times,
-                    vaccination_strain_indices_tmp,
-                    vaccinations_previous,
-					measurement_strain_indices,
-					sample_times,
-					index_in_samples,
-					end_index_in_samples,
-					start_index_in_data,
-					nrows_per_blood_sample,
-					number_strains,
-					antigenic_map_short,
-					antigenic_map_long,
-          antigenic_map_short_vac,
-					antigenic_map_long_vac,
-					boost_before_infection);
+            titre_data_fast_individual_base(
+              predicted_titres, 
+              theta,
+              infection_info,
+              vaccination_info_i,
+              setup_dat, 
+              indexing,
+              antigenic_maps);
       } else if (titre_dependent_boosting) {
-	titre_data_fast_individual_titredep(predicted_titres, mu, mu_short,
-					    wane, tau,
-					    gradient, boost_limit,
-					    infection_times,
-					    infection_strain_indices_tmp,
-					    measurement_strain_indices,
-					    sample_times,
-					    index_in_samples,
-					    end_index_in_samples,
-					    start_index_in_data,
-					    nrows_per_blood_sample,
-					    number_strains,
-					    antigenic_map_short,
-					    antigenic_map_long,
-					    boost_before_infection);	
+	          titre_data_fast_individual_titredep(
+              predicted_titres, 
+              theta, 
+					    infection_info,
+              vaccination_info_i,
+              setup_dat, 
+              indexing,
+					    antigenic_maps);	
       } else if (strain_dep_boost) {
-	titre_data_fast_individual_strain_dependent(predicted_titres, 
-						    mus, boosting_vec_indices, 
-						    mu_short,
-						    wane, tau,
-						    infection_times,
-						    infection_strain_indices_tmp,
-						    measurement_strain_indices,
-						    sample_times,
-						    index_in_samples,
-						    end_index_in_samples,
-						    start_index_in_data,
-						    nrows_per_blood_sample,
-						    number_strains,
-						    antigenic_map_short,
-						    antigenic_map_long,
-						    boost_before_infection);
+            titre_data_fast_individual_strain_dependent(
+              predicted_titres, 
+              mus, boosting_vec_indices, 
+              theta,
+              infection_info,
+              vaccination_info_i,
+              setup_dat, 
+              indexing,
+              antigenic_maps);
       } else if(alternative_wane_func) {
-	titre_data_fast_individual_wane2(predicted_titres, mu, mu_short,
-					 wane, tau,
-					 kappa, t_change,
-					 infection_times,
-					 infection_strain_indices_tmp,
-					 measurement_strain_indices,
-					 sample_times,
-					 index_in_samples,
-					 end_index_in_samples,
-					 start_index_in_data,
-					 nrows_per_blood_sample,
-					 number_strains,
-					 antigenic_map_short,
-					 antigenic_map_long,
-					 boost_before_infection);
+            titre_data_fast_individual_wane2(
+              predicted_titres, 
+              theta,
+              infection_info,
+              vaccination_info_i,
+              setup_dat, 
+              indexing,
+              antigenic_maps);
       } else {
-	titre_data_fast_individual_base(predicted_titres, mu, mu_short,
-					wane, tau,
-                    vac_flag,
-           //         vac_flag_ind,
-                   // vac_flag_ind,
-                    mu_vac, mu_short_vac, wane_vac, tau_prev_vac,
-					infection_times,
-					infection_strain_indices_tmp,
-                    vaccination_times,
-                    vaccination_strain_indices_tmp,
-                    vaccinations_previous,
-					measurement_strain_indices,
-					sample_times,
-					index_in_samples,
-					end_index_in_samples,
-					start_index_in_data,
-					nrows_per_blood_sample,
-					number_strains,
-					antigenic_map_short,
-					antigenic_map_long,
-          antigenic_map_short_vac,
-					antigenic_map_long_vac,
-					boost_before_infection);
+	          titre_data_fast_individual_base(
+              predicted_titres, 
+              theta,
+              infection_info,
+              vaccination_info_i,
+              setup_dat, 
+              indexing,
+              antigenic_maps);
       }
-     
     }
   }
- // Rcpp::Rcout << "End of titre_data_fast (infection_model_fast.cpp)" << std::endl;
-
   return(predicted_titres);
 }

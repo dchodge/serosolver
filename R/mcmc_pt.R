@@ -13,7 +13,6 @@
 run_MCMC_pt <- function(par_tab,
                              titre_dat,
                              vaccination_histories=NULL,
-                             vaccination_histories_mat=NULL,
                              antigenic_map=NULL,
                              strain_isolation_times=NULL,
                              mcmc_pars = c(),
@@ -48,6 +47,9 @@ run_MCMC_pt <- function(par_tab,
   }
   lapply(par_tab, function(x) check_par_tab(x, TRUE, 2))
   
+  # Maybe check
+  vaccination_info <- get_vaccination_info(vaccination_histories)
+
 
     ## Sort out MCMC parameters --------------------------------------
     ###################################################################
@@ -214,8 +216,7 @@ run_MCMC_pt <- function(par_tab,
   posterior_simp <- protect(CREATE_POSTERIOR_FUNC(
     par_tab_cold,
     titre_dat,
-    vaccination_histories,
-    vaccination_histories_mat,
+    vaccination_info,
     antigenic_map,
     strain_isolation_times,
     version = version,
@@ -234,8 +235,7 @@ run_MCMC_pt <- function(par_tab,
   proposal_gibbs <- protect(CREATE_POSTERIOR_FUNC(
     par_tab_cold,
     titre_dat,
-    vaccination_histories,
-    vaccination_histories_mat,
+    vaccination_info,
     antigenic_map,
     strain_isolation_times,
     version = version,

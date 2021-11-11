@@ -249,7 +249,7 @@ prob_mus <- function(mus, pars) {
   ## mean_log_y <- mean(log(mus))
   ## sd_log_y <- sd(log(mus))
   ## sigmaOfLogY <- dunif(mu_sd, 0.001*sd_log_y,1000*sd_log_y)
-  ## muOfLogY <- dnorm(mu_mean, mean_log_y, 1/(10*sd_log_y)^2)
+  ## muOfLogY <- dnorm(mu_mean,make_antigenic_maps mean_log_y, 1/(10*sd_log_y)^2)
   ## return(sum(dlnorm(mus, mu_mean, 1/mu_sd^2, log=TRUE)) + sigmaOfLogY + muOfLogY)
   ## return(sum(dlnorm(mus, mu_mean, mu_sd, log = TRUE)))
 }
@@ -260,6 +260,20 @@ prob_mus_vac <- function(mus, pars) {
   mu_mean <- pars["mu_vac_mean"]
   mu_sd <- pars["mu_vac_sd"]
   return(sum(dnorm(mus, mu_mean, mu_sd, log = TRUE)))
+}
+
+
+### CUSTOM FUNCTION
+#' Function to make the antigenic maps
+#' @export
+make_antigenic_maps <- function(antigenic_map_melted, theta) {
+
+    antigenic_map_long <- create_cross_reactivity_vector(antigenic_map_melted, theta["sigma1"])
+    antigenic_map_short <- create_cross_reactivity_vector(antigenic_map_melted, theta["sigma2"])
+    antigenic_map_long_vac <- create_cross_reactivity_vector(antigenic_map_melted, theta["sigma1"] * theta["sigma2"])
+    antigenic_map_short_vac <- create_cross_reactivity_vector(antigenic_map_melted, theta["sigma2_vac"])
+
+    return(list(long = antigenic_map_long, short = antigenic_map_short, long_vac = antigenic_map_long_vac, short_vac = antigenic_map_short_vac))
 }
 
 #' Posterior function pointer
@@ -299,7 +313,6 @@ prob_mus_vac <- function(mus, pars) {
 create_posterior_func <- function(par_tab,
                                   titre_dat,
                                   vaccination_histories=NULL,
-                                  vaccination_histories_mat=NULL,
                                   antigenic_map=NULL,
                                   strain_isolation_times=NULL,
                                   version = 1,
@@ -322,6 +335,9 @@ create_posterior_func <- function(par_tab,
     } else {
       antigenic_map <- data.frame("x_coord"=1,"y_coord"=1,"inf_times"=strain_isolation_times)
     }
+
+    vaccination_info <- get_vaccination_info(vaccination_histories)
+
     ## Seperate out initial readings and repeat readings - we only
     ## want to solve the model once for each unique indiv/sample/virus year tested
     titre_dat_unique <- titre_dat[titre_dat$run == 1, ]
@@ -342,11 +358,10 @@ create_posterior_func <- function(par_tab,
 
     ## Setup data vectors and extract
     setup_dat <- setup_titredat_for_posterior_func(
-        titre_dat_unique, antigenic_map, 
+        titre_dat_unique, antigenic_map,
         strain_isolation_times, # when the tested strains were isolated
         age_mask, n_alive
     )
-
 
     individuals <- setup_dat$individuals
     n_groups <- length(unique(titre_dat$group))
@@ -367,21 +382,7 @@ create_posterior_func <- function(par_tab,
     strain_mask <- setup_dat$strain_mask
     n_indiv <- setup_dat$n_indiv
     DOBs <- setup_dat$DOBs
-
-    if (is.null(vaccination_histories)) {
-      indi <- unique(titre_dat$individual)
-      vaccination_histories <- data.frame(individual = 0, virus = 0, time = 0, vac_flag = 0, prev_vac = 0)
-    }
-    if (is.null(vaccination_histories_mat)) {
-      vaccination_histories_mat <- matrix(0, n_indiv, length(sample_times))
-    }
-
-  #  vaccination_histories <- vaccination_histories
-    # setup_dat_vac <- setup_vaccdat_for_posterior_func(
-    #     vaccination_histories, antigenic_map,
-    #      strain_isolation_times, # when the tested strains were isolated
-    #      age_mask, n_alive
-    #  )
+  
 
 #########################################################
     ## Extract parameter type indices from par_tab, to split up
@@ -391,8 +392,18 @@ create_posterior_func <- function(par_tab,
     phi_indices <- which(par_tab$type == 2)
     measurement_indices_par_tab <- which(par_tab$type == 3)
     weights_indices <- which(par_tab$type == 4) ## For functional form version of FOI
-    knot_indices <- which(par_tab$type == 5) ## For functional form version of FOI
+    knot_indices <- which(par_tab$type == 5)    ## For functional form version of FOI
     mu_indices_par_tab <- which(par_tab$type == 6)
+    
+    # indicies_type_par
+    indicies_type_par <- list(
+      option_indices = option_indices,
+      theta_indices = theta_indices,
+      phi_indices = phi_indices,
+      measurement_indices_par_tab = measurement_indices_par_tab,
+      weights_indices = weights_indices,
+      knot_indices = knot_indices,
+      mu_indices_par_tab = mu_indices_par_tab)
 #########################################################
 
     ## Some additional setup for the repeat data
@@ -438,66 +449,70 @@ create_posterior_func <- function(par_tab,
     if (!repeat_data_exist) {
         repeat_indices_cpp <- c(-1)
     }
+
+    ##############################################
+    ##### Pars we need for function_type 1 #######
+    ##############################################
+    ## theta_indices, indicies_type_par
+    ## par_names_theta, x
+    ## use_strain_dependent, x
+    ## mu_indices_par_tab, indicies_type_par
+    ## antigenic_map_melted, #setup_dat
+    ## vaccination_histories,
+    ## strain_isolation_times, setup_dat
+    ## infection_strain_indices, setup_dat
+    ## sample_times, setup_dat
+    ## rows_per_indiv_in_samples, setup_dat
+    ## cum_nrows_per_individual_in_data, setup_dat
+    ## nrows_per_blood_sample, setup_dat
+    ## measured_strain_indices, setup_dat
+    #            antigenic_map_long,
+    #            antigenic_map_short,
+    #            antigenic_map_long_vac,
+    #            antigenic_map_short_vac,
+    # antigenic_distances, from setup_dat
+    ##          mus, x
+    ##  boosting_vec_indices, x
+
     if (function_type == 1) {
         message(cat("Creating posterior solving function...\n"))
+        # Solve posterior given infection history and theta
         f <- function(pars, infection_history_mat) {
-
+            # values to be fitted
             theta <- pars[theta_indices]
             names(theta) <- par_names_theta
-            if (is.na(theta["sigma1_vac"])) {
-              sigma1_vac <- 1
-            } else  {
-              sigma1_vac <- 10 / (1 + exp(-theta["sigma1_vac"]))
-            }
-            if (is.na(theta["sigma2_vac"])) {
-              sigma2_vac <- 1
-            } else {
-              sigma2_vac <- 1 / (1 + exp(-theta["sigma2_vac"]))
-            }
+  
 
             if (use_strain_dependent) {
                 mus <- pars[mu_indices_par_tab]
             }
-            #cat("Start of post_simp (posterior.R). Pos 2", "\n")
 
-            antigenic_map_long <- create_cross_reactivity_vector(
-                antigenic_map_melted,
-                theta["sigma1"]
-            )
-            antigenic_map_short <- create_cross_reactivity_vector(
-                antigenic_map_melted,
-                theta["sigma2"]
-            )
-
-            antigenic_map_long_vac <- create_cross_reactivity_vector(
-                antigenic_map_melted,
-                theta["sigma1"] * sigma1_vac
-            )
-            antigenic_map_short_vac <- create_cross_reactivity_vector(
-                antigenic_map_melted,
-                sigma2_vac # use theta["sigma2_vac"] # for raw value
-            )
+            antigenic_maps <- make_antigenic_maps(antigenic_map_melted, theta)
 
             ## Calculate titres for measured data
-           # cat("Before titre_data_fast B (posterior.R): ", "\n")
             y_new <- titre_data_fast(
-            theta, infection_history_mat, vaccination_histories, strain_isolation_times, infection_strain_indices,
-                sample_times, rows_per_indiv_in_samples, cum_nrows_per_individual_in_data,
-                nrows_per_blood_sample, measured_strain_indices,
-                antigenic_map_long,
-                antigenic_map_short,
-                antigenic_map_long_vac,
-                antigenic_map_short_vac,
+                theta,
+                infection_history_mat,
+                vaccination_info,
+                strain_isolation_times,
+                infection_strain_indices,
+                sample_times,
+                rows_per_indiv_in_samples, 
+                cum_nrows_per_individual_in_data,
+                nrows_per_blood_sample, 
+                measured_strain_indices,
+                antigenic_maps,
                 antigenic_distances,
-                mus, boosting_vec_indices
+                mus,
+                boosting_vec_indices
             )
-            #cat("After titre_data_fast B (posterior.R): ", "\n")
 
             if (use_measurement_bias) {
                 measurement_bias <- pars[measurement_indices_par_tab]
                 titre_shifts <- measurement_bias[expected_indices]
                 y_new <- y_new + titre_shifts
             }
+
             ## Transmission prob is the part of the likelihood function corresponding to each individual
             transmission_prob <- rep(0, n_indiv)
             if (explicit_phi) {
@@ -563,21 +578,9 @@ create_posterior_func <- function(par_tab,
                       proposal_ratios,
                       temp=1,
                       propose_from_prior=TRUE) {
-            
-            #cat("Start of function B (posterior.R)")
 
             theta <- pars[theta_indices]
             names(theta) <- par_names_theta
-            if (is.na(theta["sigma1_vac"])) {
-              sigma1_vac <- 1
-            } else  {
-              sigma1_vac <- 10 / (1 + exp(-theta["sigma1_vac"]))
-            }
-            if (is.na(theta["sigma2_vac"])) {
-              sigma2_vac <- 1
-            } else {
-              sigma2_vac <- 1 / (1 + exp(-theta["sigma2_vac"]))
-            }
 
             ## Pass strain-dependent boosting down
             if (use_strain_dependent) {
@@ -588,18 +591,14 @@ create_posterior_func <- function(par_tab,
                 titre_shifts <- measurement_bias[expected_indices]
             }
             ## Work out short and long term boosting cross reactivity - C++ function
-            antigenic_map_long <- create_cross_reactivity_vector(antigenic_map_melted, theta["sigma1"])
-            antigenic_map_short <- create_cross_reactivity_vector(antigenic_map_melted, theta["sigma2"])
-            antigenic_map_long_vac <- create_cross_reactivity_vector(antigenic_map_melted, theta["sigma1"] * sigma1_vac)
-            antigenic_map_short_vac <- create_cross_reactivity_vector(antigenic_map_melted, sigma2_vac)
+            antigenic_maps <- make_antigenic_maps(antigenic_map_melted, theta)
 
             n_infections <- sum_infections_by_group(infection_history_mat, group_id_vec, n_groups)
             if (version == 4) n_infected_group <- rowSums(n_infections)
             res <- inf_hist_prop_prior_v2_and_v4(
                 theta,
                 infection_history_mat,
-                vaccination_histories,
-                vaccination_histories_mat,
+                vaccination_info,
                 probs,
                 sampled_indivs,
                 n_infs,
@@ -623,10 +622,7 @@ create_posterior_func <- function(par_tab,
                 nrows_per_blood_sample,
                 group_id_vec,
                 measured_strain_indices,
-                antigenic_map_long,
-                antigenic_map_short,
-                antigenic_map_long_vac,
-                antigenic_map_short_vac,
+                antigenic_maps,
                 antigenic_distances,
                 titres_unique,
                 titres_repeats,
@@ -656,35 +652,20 @@ create_posterior_func <- function(par_tab,
 
             theta <- pars[theta_indices]
             names(theta) <- par_names_theta
-            if (is.na(theta["sigma1_vac"])) {
-              sigma1_vac <- 1
-            } else  {
-              sigma1_vac <- 10 / (1 + exp(-theta["sigma1_vac"]))
-            }
-            if (is.na(theta["sigma2_vac"])) {
-              sigma2_vac <- 1
-            } else {
-              sigma2_vac <- 1 / (1 + exp(-theta["sigma2_vac"]))
-            }
             ## Pass strain-dependent boosting down
             if (use_strain_dependent) {
                 mus <- pars[mu_indices_par_tab]
             }
 
-            antigenic_map_long <- create_cross_reactivity_vector(antigenic_map_melted, theta["sigma1"])
-            antigenic_map_short <- create_cross_reactivity_vector(antigenic_map_melted, theta["sigma2"])
-            antigenic_map_long_vac <- create_cross_reactivity_vector(antigenic_map_melted, theta["sigma1"] * sigma1_vac)
-            antigenic_map_short_vac <- create_cross_reactivity_vector(antigenic_map_melted, sigma2_vac)
+            antigenic_maps <- make_antigenic_maps(antigenic_map_melted, theta)
+
             
             #cat("Start of titre fast A (posterior.R)")
             y_new <- titre_data_fast(
-                theta, infection_history_mat, vaccination_histories, strain_isolation_times, infection_strain_indices,
+                theta, infection_history_mat, vaccination_info, strain_isolation_times, infection_strain_indices,
                 sample_times, rows_per_indiv_in_samples, cum_nrows_per_individual_in_data,
                 nrows_per_blood_sample, measured_strain_indices,
-                antigenic_map_long,
-                antigenic_map_short,
-                antigenic_map_long_vac,
-                antigenic_map_short_vac,
+                antigenic_maps,
                 antigenic_distances,
                 mus, boosting_vec_indices,
                 titre_before_infection

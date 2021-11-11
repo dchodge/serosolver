@@ -222,6 +222,25 @@ setup_infection_histories <- function(titre_dat, strain_isolation_times, space =
   return(start_inf)
 }
 
+get_vaccination_info <- function(vac_history) {
+        if (!is.null(vac_history)) {
+          vac_history_wide <- vac_history %>%
+                  select(individual, virus, vac_flag) %>%
+                  pivot_wider(names_from = virus, values_from = vac_flag)
+          vac_history_matrix <- vac_history_wide[, 2:ncol(vac_history_wide)] %>% as.matrix
+          vac_history_strains <- as.numeric(colnames(vac_history_matrix))
+          vac_history_strains_indices <- 1:length(vac_history_strains) - 1
+
+          return(list(vac_history_matrix = vac_history_matrix,
+                  vac_history_strains = vac_history_strains,
+                  vac_history_strains_indices = vac_history_strains_indices))
+        } else {
+          return(list(vac_history_matrix = NULL,
+                  vac_history_strains = NULL,
+                  vac_history_strains_indices = NULL))
+        }
+}
+
 #' Propose initial infection histories based on titres - use this!
 #'
 #' Very similar to \code{\link{setup_infection_histories}}, but is not restricted to placing starting infections against viruses to which an individual has a titre. Given a matrix of titre data, proposes plausible initial infection histories from which to begin MCMC sampling.

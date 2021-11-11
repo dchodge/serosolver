@@ -69,8 +69,6 @@ run_MCMC_pt(
 \item{continue_run}{if TRUE, uploads a previous run and continues sampling process}
 
 \item{...}{Other arguments to pass to CREATE_POSTERIOR_FUNC}
-
-\item{seed}{random seed to set for the MCMC, if desired}
 }
 \description{
 Runs the MCMC chain for the serosolver model, but uses parallel tempering to run a number of chains at different temperatures, 
