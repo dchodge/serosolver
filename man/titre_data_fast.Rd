@@ -7,7 +7,8 @@
 titre_data_fast(
   theta,
   infection_history_mat,
-  vaccination_histories,
+  vaccination_hist_info,
+  abkinetics_model,
   circulation_times,
   circulation_times_indices,
   sample_times,

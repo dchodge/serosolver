@@ -26,7 +26,8 @@
 // [[Rcpp::export(rng = false)]]
 NumericVector titre_data_fast(NumericVector theta,
 			      const IntegerMatrix infection_history_mat,
-            const List vaccination_history_info,
+            const List vaccination_hist_info,
+				    const Function abkinetics_model,
 			      const NumericVector circulation_times,
 			      const IntegerVector circulation_times_indices,
 			      const NumericVector sample_times,
@@ -41,7 +42,6 @@ NumericVector titre_data_fast(NumericVector theta,
 			      bool boost_before_infection = false
 			      ){
 
-  Rcpp::Rcout << "Start of titre_data_fast" << std::endl;
   // Dimensions of structures
   int n = infection_history_mat.nrow();
   int number_strains = infection_history_mat.ncol();
@@ -64,17 +64,13 @@ NumericVector titre_data_fast(NumericVector theta,
   NumericVector vac_history_strains_indices;
   bool vac_null_ind = false;
   
-  Rcpp::Rcout << "Before definition of vac stuff" << std::endl;
-
-  if (vaccination_history_info["vac_history_matrix"] == R_NilValue) {
+  if (vaccination_hist_info["vac_history_matrix"] == R_NilValue) {
     vac_null_ind = true;
   } else {
-    vac_history_matrix = vaccination_history_info["vac_history_matrix"];
-    vac_history_strains = vaccination_history_info["vac_history_strains"];
-    vac_history_strains_indices = vaccination_history_info["vac_history_strains_indices"];
+    NumericMatrix vac_history_matrix = vaccination_hist_info["vac_history_matrix"];
+    NumericVector vac_history_strains = vaccination_hist_info["vac_history_strains"];
+    NumericVector vac_history_strains_indices = vaccination_hist_info["vac_history_strains_indices"];
   }
- 
-
 
   IntegerVector vaccination_history;
   LogicalVector indices_vac;
@@ -113,18 +109,18 @@ NumericVector titre_data_fast(NumericVector theta,
 
   List vaccination_info_i = List::create( 
       _["vac_times"] = R_NilValue,
-      _["vac_indices"] = R_NilValue
+      _["vac_indices"] = R_NilValue,
+      _["vac_null_ind"] = vac_null_ind
   );
-  Rcpp::Rcout << "Before individuals loop" << std::endl;
 
   for (int i = 1; i <= n; ++i) {
     // Find infection times for individual i
     infection_history = infection_history_mat(i-1, _);
+    //Rcpp::Rcout << "infection_history: " << infection_history << ". Number: "<< i << std::endl;
     indices = infection_history > 0;
     infection_times = circulation_times[indices];
 
     // Find vaccination history for individual i
-    Rcpp::Rcout << "Get vaccination info for individual i" << std::endl;
     if (!vac_null_ind) {
       vaccination_history = vac_history_matrix(i-1, _);
       indices_vac = vaccination_history > 0;
@@ -139,7 +135,6 @@ NumericVector titre_data_fast(NumericVector theta,
       infection_info["inf_indices"] = infection_strain_indices_tmp;
 
       // Vaccination fill infro for individual i 
-      Rcpp::Rcout << "Get vaccination info for individual i if vac_times exists" << std::endl;
       if (!vac_null_ind) {
         vaccination_strain_indices_tmp = vac_history_strains_indices[indices_vac];
         vaccination_info_i["vac_times"] = vaccination_times;
@@ -156,9 +151,10 @@ NumericVector titre_data_fast(NumericVector theta,
       // ====================================================== //
       // Go to sub function - this is where we have options for different models
       // Note, these are in "boosting_functions.cpp"
-      Rcpp::Rcout << "Just before base functions" << std::endl;
       if (base_function) {
-            titre_data_fast_individual_base(
+
+        titre_data_fast_individual_base(
+          //  abkinetics_model(
               predicted_titres, 
               theta,
               infection_info,
@@ -195,7 +191,8 @@ NumericVector titre_data_fast(NumericVector theta,
               indexing,
               antigenic_maps);
       } else {
-	          titre_data_fast_individual_base(
+	         titre_data_fast_individual_base(
+            //abkinetics_model(
               predicted_titres, 
               theta,
               infection_info,

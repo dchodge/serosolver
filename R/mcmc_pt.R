@@ -1,3 +1,4 @@
+
 #' Parallel tempering MCMC
 #' 
 #' Runs the MCMC chain for the serosolver model, but uses parallel tempering to run a number of chains at different temperatures, 
@@ -47,10 +48,11 @@ run_MCMC_pt <- function(par_tab,
   }
   lapply(par_tab, function(x) check_par_tab(x, TRUE, 2))
   
+  abkinetics_model <- makeFuncPtr(titre_data_fast_individual_base)
+
   # Maybe check
-  vaccination_info <- get_vaccination_info(vaccination_histories)
-
-
+  vaccination_hist_info <- get_vaccination_info(vaccination_histories)
+  vaccination_histories_mat <- vaccination_hist_info[["vac_history_matrix"]]
     ## Sort out MCMC parameters --------------------------------------
     ###################################################################
   mcmc_pars_used <- list(
@@ -216,7 +218,7 @@ run_MCMC_pt <- function(par_tab,
   posterior_simp <- protect(CREATE_POSTERIOR_FUNC(
     par_tab_cold,
     titre_dat,
-    vaccination_info,
+    vaccination_histories,
     antigenic_map,
     strain_isolation_times,
     version = version,
@@ -235,7 +237,7 @@ run_MCMC_pt <- function(par_tab,
   proposal_gibbs <- protect(CREATE_POSTERIOR_FUNC(
     par_tab_cold,
     titre_dat,
-    vaccination_info,
+    vaccination_histories,
     antigenic_map,
     strain_isolation_times,
     version = version,
@@ -405,11 +407,13 @@ run_MCMC_pt <- function(par_tab,
     )
   } else {
     # IMPORT PREVIOUS RUN
-    load(file = mcmc_info_file) # loads mcmc_info
+    cat("mcmc_info_file: ", mcmc_info_file, "\n")
+    load(file = mcmc_info_file)  # loads mcmc_info
     mcmc_list <- mcmc_info$mcmc_list
     temperatures <- mcmc_info$temperatures
 
     # PRE ALLOCATE MEMORY
+    cat("mcmc_list[[1]]$i: ", mcmc_list[[1]]$i, "\n")
     sampno <- mcmc_list[[1]]$i + 1
     i_prev <- mcmc_list[[1]]$i
     no_recorded <- 1
@@ -426,6 +430,11 @@ run_MCMC_pt <- function(par_tab,
   potential_swaps <- swaps <- 0
   
   ## Main body of running MCMC
+  cat("i_prev:, ", i_prev, "\n")
+  cat("iterations:, ", iterations, "\n")
+  cat("adaptive_period:, ", adaptive_period, "\n")
+  cat("burnin:, ", burnin, "\n")
+
   for (i in (i_prev + 1):(iterations + adaptive_period + burnin + i_prev)) 
   {
         if (i %% save_block == 0) message(cat("Current iteration: ", i, "\n", sep = "\t"))

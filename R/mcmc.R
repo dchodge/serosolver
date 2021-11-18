@@ -1,3 +1,4 @@
+
 #' Adaptive Metropolis-within-Gibbs/Metropolis Hastings Random Walk Algorithm.
 #'
 #' The Adaptive Metropolis-within-Gibbs algorithm. Given a starting point and the necessary MCMC parameters as set out below, performs a random-walk of the posterior space to produce an MCMC chain that can be used to generate MCMC density and iteration plots. The algorithm undergoes an adaptive period, where it changes the step size of the random walk for each parameter to approach the desired acceptance rate, popt. The algorithm then uses \code{\link{univ_proposal}} or \code{\link{mvr_proposal}} to explore parameter space, recording the value and posterior value at each step. The MCMC chain is saved in blocks as a .csv file at the location given by filename. This version of the algorithm is also designed to explore posterior densities for infection histories. See the package vignettes for examples. 
@@ -83,11 +84,11 @@ run_MCMC <- function(par_tab,
   }
 
   # Maybe check
-  vaccination_info <- get_vaccination_info(vaccination_histories)
-
+  vaccination_hist_info <- get_vaccination_info(vaccination_histories)
+  vaccination_histories_mat <- vaccination_hist_info[["vac_history_matrix"]]
   ## Sort out MCMC parameters --------------------------------------
   ###################################################################
-    mcmc_pars_used <- c(
+    mcmc_pars_used <- list(
       "iterations" = 20000, "popt" = 0.44, "popt_hist" = 0.44, "opt_freq" = 2000, "thin" = 1,
       "adaptive_period" = 5000,
       "save_block" = 100, "thin_hist" = 10, "hist_sample_prob" = 0.5, "switch_sample" = 2, "burnin" = 0,
@@ -95,8 +96,6 @@ run_MCMC <- function(par_tab,
       "hist_switch_prob" = 0, "year_swap_propn" = 1, "propose_from_prior" = TRUE
     )
     mcmc_pars_used[names(mcmc_pars)] <- mcmc_pars
-    ##vaccination_histories_mat <- make_vac_matrix(vaccination_histories)
-    ##vaccination_histories_mat <- 1
     ## Extract MCMC parameters
     iterations <- mcmc_pars_used[["iterations"]] # How many iterations to run after adaptive period
     popt <- mcmc_pars_used[["popt"]] # Desired optimal acceptance rate
@@ -118,6 +117,10 @@ run_MCMC <- function(par_tab,
     year_swap_propn <- mcmc_pars_used[["year_swap_propn"]] # If gibbs and swapping contents, what proportion of these time periods should be swapped?
     propose_from_prior <- mcmc_pars_used[["propose_from_prior"]]
   ###################################################################
+
+  cat("iterations: ", iterations, "\n")
+  cat("burnin: ", burnin, "\n")
+  cat("adaptive_period: ", adaptive_period, "\n")
 
   ## Sort out which version to run --------------------------------------
   prior_on_total <- FALSE
@@ -229,13 +232,11 @@ run_MCMC <- function(par_tab,
     prior_probab
   }
 
-  cat("here2")
-
     ## Create posterior calculating function
   posterior_simp <- protect(CREATE_POSTERIOR_FUNC(
     par_tab,
     titre_dat,
-    vaccination_info,
+    vaccination_histories,
     antigenic_map,
     strain_isolation_times,
     version = version,
@@ -252,14 +253,12 @@ run_MCMC <- function(par_tab,
     prior_func <- CREATE_PRIOR_FUNC(par_tab)
   }
 
-  cat("here2")
-
   ## If using gibbs proposal on infection_history, create here
   if (hist_proposal == 2) {
     proposal_gibbs <- protect(CREATE_POSTERIOR_FUNC(
       par_tab,
       titre_dat,
-      vaccination_info,
+      vaccination_histories,
       antigenic_map,
       strain_isolation_times,
       version = version,
@@ -527,7 +526,6 @@ run_MCMC <- function(par_tab,
             }
             ## Gibbs sampler version, integrate out phi
         } else if (hist_proposal == 2) {
-            # vaccination_histories_mat
             ## Swap entire contents or propose new
             if (inf_swap_prob > hist_switch_prob) {
                 prop_gibbs <- proposal_gibbs(

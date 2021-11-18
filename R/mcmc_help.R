@@ -226,18 +226,35 @@ get_vaccination_info <- function(vac_history) {
         if (!is.null(vac_history)) {
           vac_history_wide <- vac_history %>%
                   select(individual, virus, vac_flag) %>%
+                  unique %>%
                   pivot_wider(names_from = virus, values_from = vac_flag)
           vac_history_matrix <- vac_history_wide[, 2:ncol(vac_history_wide)] %>% as.matrix
           vac_history_strains <- as.numeric(colnames(vac_history_matrix))
           vac_history_strains_indices <- 1:length(vac_history_strains) - 1
 
-          return(list(vac_history_matrix = vac_history_matrix,
-                  vac_history_strains = vac_history_strains,
-                  vac_history_strains_indices = vac_history_strains_indices))
+          if (sum(vac_history_matrix) != 0) {
+             return(
+              list(
+                vac_history_matrix = vac_history_matrix,
+                vac_history_strains = vac_history_strains,
+                vac_history_strains_indices = vac_history_strains_indices)
+              )
+          } else {
+            message(cat("All entries in vaccination history matrix are 0, changing to NULL."))
+            return( 
+              list(
+                vac_history_matrix = NULL,
+                vac_history_strains = NULL,
+                vac_history_strains_indices = NULL)
+            )
+          }
         } else {
-          return(list(vac_history_matrix = NULL,
-                  vac_history_strains = NULL,
-                  vac_history_strains_indices = NULL))
+          return(
+            list(
+              vac_history_matrix = NULL,
+              vac_history_strains = NULL,
+              vac_history_strains_indices = NULL)
+          )
         }
 }
 

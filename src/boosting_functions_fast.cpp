@@ -13,6 +13,7 @@
 //' A fast implementation of the basic boosting function, giving predicted titres for a number of samples for one individual. Note that this version attempts to minimise memory allocations.
 //' @family boosting_functions
 //' @seealso \code{\link{titre_data_fast}}
+// [[Rcpp::export]]
 void titre_data_fast_individual_base(
             NumericVector &predicted_titres,
             NumericVector &theta,
@@ -23,11 +24,19 @@ void titre_data_fast_individual_base(
             const List &antigenic_maps
           ){
 
+  Rcpp::Rcout << "predicted_titres (Start): " << predicted_titres << std::endl;
 
-  NumericVector vaccination_times = vaccination_info["vac_times"];
-  IntegerVector vaccination_strain_indices_tmp = vaccination_info["vac_indices"];
+  int max_vaccinations;
+  bool vac_flag = !vaccination_info["vac_null_ind"];
+  NumericVector vaccination_times;
+  if (vac_flag) {
+    NumericVector vaccination_times = vaccination_info["vac_times"];
+    IntegerVector vaccination_strain_indices_tmp = vaccination_info["vac_indices"];
+    max_vaccinations = vaccination_times.size();
+  }
 
   NumericVector infection_times = infection_info["inf_times"];
+  Rcpp::Rcout << "infection_times: " << infection_times << std::endl;
   IntegerVector infection_strain_indices_tmp = infection_info["inf_indices"];
 
 	bool boost_before_infection = false;
@@ -61,14 +70,12 @@ void titre_data_fast_individual_base(
   int index;
 
   int max_infections = infection_times.size();
-  int max_vaccinations = vaccination_times.size();
 
   double mu = theta["mu"];
   double mu_short = theta["mu_short"];
   double wane = theta["wane"];
   double tau = theta["tau"];
   double kappa = theta["kappa"];
-  bool vac_flag = false;
   
   NumericVector antigenic_map_long = antigenic_maps["long"];
   NumericVector antigenic_map_short = antigenic_maps["short"];
@@ -76,7 +83,7 @@ void titre_data_fast_individual_base(
   NumericVector antigenic_map_short_vac = antigenic_maps["short_vac"];
 
   NumericVector inf_vac_times;
-  if (vac_flag){
+  if (vac_flag) {
     if (max_vaccinations > 0  & max_infections > 0) {
       inf_vac_times = union_(infection_times, vaccination_times);
     } else if(max_vaccinations == 0  & max_infections > 0) {
@@ -96,10 +103,12 @@ void titre_data_fast_individual_base(
   LogicalVector indicatior_vac(max_inf_vac_times);
 
   for (int i = 0; i < inf_vac_times.size(); i++) {
-    for (int k = 0; k < vaccination_times.size(); k++) {
-      indicatior_vac[i] = inf_vac_times[i] == vaccination_times[k];
-      if (indicatior_vac[i])
-        break;
+    if (vac_flag) {
+      for (int k = 0; k < vaccination_times.size(); k++) {
+        indicatior_vac[i] = inf_vac_times[i] == vaccination_times[k];
+        if (indicatior_vac[i])
+          break;
+      }
     }
     for (int j = 0; j < infection_times.size(); j++) {
       indicatior_inf[i] = inf_vac_times[i] == infection_times[j];
@@ -109,7 +118,7 @@ void titre_data_fast_individual_base(
   }
 
   for(int j = index_in_samples; j <= end_index_in_samples; ++j){
-
+ //   Rcpp::Rcout << "In here and j is: " << j << std::endl;
     sampling_time = sample_times[j];
     n_inf = 0.0;
     n_vac = 0.0;
@@ -122,20 +131,22 @@ void titre_data_fast_individual_base(
     tmp_titre_index = start_index_in_data;
 
     // Sum all infections that would contribute towards observed titres at this time
+  //  Rcpp::Rcout << "max_inf_vac_times: " << max_inf_vac_times << std::endl;
     for (int x = 0; x < max_inf_vac_times; ++x){
-
+  //    Rcpp::Rcout << "indicatior_inf[x]: " << indicatior_inf[x] << std::endl;
       if (indicatior_inf[x]) {
         ++n_inf;
         // sampling through each predicted infection
         // Only go further if this sample happened after the infection
         if((boost_before_infection && sampling_time > infection_times[x_inf]) ||
           (!boost_before_infection && sampling_time >= infection_times[x_inf])){
-
+     //       Rcpp::Rcout << "Inside real bit" << std::endl;
             time = sampling_time - infection_times[x_inf]; // Time between sample and infection
             wane_amount = MAX(0, 1.0 - (wane*time)); // Basic waning function
             seniority = MAX(0, 1.0 - tau*(n_inf + n_vac - 1.0)); // Antigenic seniority
             
             inf_map_index = infection_strain_indices_tmp[x_inf]; // Index of this infecting strain in antigenic map
+      //      Rcpp::Rcout << "n_titres: " << n_titres  << std::endl;
             for(int k = 0; k < n_titres; ++k){
 
               index = measurement_strain_indices[tmp_titre_index + k]*number_strains + inf_map_index;
@@ -168,6 +179,7 @@ void titre_data_fast_individual_base(
     }
     start_index_in_data = end_index_in_data;
   }
+  Rcpp::Rcout << "predicted_titres (END): " << predicted_titres << std::endl;
 }
 
 
@@ -425,7 +437,6 @@ void titre_data_fast_individual_strain_dependent(NumericVector &predicted_titres
 						 const NumericVector &mus,
 						 const IntegerVector &boosting_vec_indices,
              NumericVector &theta,
-
             const List &infection_info,
             const List &vaccination_info,
 						const List &setup_data,
@@ -503,4 +514,53 @@ void titre_data_fast_individual_strain_dependent(NumericVector &predicted_titres
     }
     start_index_in_data = end_index_in_data;
   }
+}
+
+
+
+void titre_data_fast_custom(
+            NumericVector &predicted_titres,
+            NumericVector &theta,
+            const List &infection_info,
+            const List &vaccination_info,
+            const List &setup_data,
+            const List &indexing,
+            const List &antigenic_maps
+          ) 
+{
+  ////////////////////////////////////
+  // Get all the values from Lists //
+  ////////////////////////////////////
+  // vacciantion_info  - get the vaccinations times and strain indicies for individual i
+  // - only run if provided
+  int max_vaccinations;
+  bool vac_flag = !vaccination_info["vac_null_ind"];
+  NumericVector vaccination_times;
+  if (vac_flag) {
+    NumericVector vaccination_times = vaccination_info["vac_times"];
+    IntegerVector vaccination_strain_indices_tmp = vaccination_info["vac_indices"];
+    max_vaccinations = vaccination_times.size();
+  }
+
+  // info_info - get the infection times and strain indicies for individual i
+  NumericVector infection_times = infection_info["inf_times"];
+  IntegerVector infection_strain_indices_tmp = infection_info["inf_indices"];
+
+  // Get some index values assocaited with individual i (Derived from titre data)
+  double index_in_samples = indexing["index_in_samples"];
+  double end_index_in_samples = indexing["end_index_in_samples"];
+  double start_index_in_data = indexing["start_index_in_data"];
+
+  // Get some infomation from titre_data
+  NumericVector sample_times = setup_data["sample_times"];
+  IntegerVector measurement_strain_indices = setup_data["measurement_strain_indices"];
+  IntegerVector nrows_per_blood_sample = setup_data["nrows_per_blood_sample"];
+  int number_strains = setup_data["number_strains"];
+
+  // info_info - get the antigen maps defined in function
+  NumericVector antigenic_map_long = antigenic_maps["long"];
+  NumericVector antigenic_map_short = antigenic_maps["short"];
+
+  // Add function here 
+
 }

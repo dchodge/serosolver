@@ -325,6 +325,8 @@ create_posterior_func <- function(par_tab,
                                   titre_before_infection=FALSE,
                                   ...) {
 
+    abkinetics_model <- makeFuncPtr(titre_data_fast_individual_base)
+
     check_par_tab(par_tab, TRUE, version)
     if (!("group" %in% colnames(titre_dat))) {
         titre_dat$group <- 1
@@ -336,7 +338,7 @@ create_posterior_func <- function(par_tab,
       antigenic_map <- data.frame("x_coord"=1,"y_coord"=1,"inf_times"=strain_isolation_times)
     }
 
-    vaccination_info <- get_vaccination_info(vaccination_histories)
+    vaccination_hist_info <- get_vaccination_info(vaccination_histories)
 
     ## Seperate out initial readings and repeat readings - we only
     ## want to solve the model once for each unique indiv/sample/virus year tested
@@ -450,30 +452,6 @@ create_posterior_func <- function(par_tab,
         repeat_indices_cpp <- c(-1)
     }
 
-    ##############################################
-    ##### Pars we need for function_type 1 #######
-    ##############################################
-    ## theta_indices, indicies_type_par
-    ## par_names_theta, x
-    ## use_strain_dependent, x
-    ## mu_indices_par_tab, indicies_type_par
-    ## antigenic_map_melted, #setup_dat
-    ## vaccination_histories,
-    ## strain_isolation_times, setup_dat
-    ## infection_strain_indices, setup_dat
-    ## sample_times, setup_dat
-    ## rows_per_indiv_in_samples, setup_dat
-    ## cum_nrows_per_individual_in_data, setup_dat
-    ## nrows_per_blood_sample, setup_dat
-    ## measured_strain_indices, setup_dat
-    #            antigenic_map_long,
-    #            antigenic_map_short,
-    #            antigenic_map_long_vac,
-    #            antigenic_map_short_vac,
-    # antigenic_distances, from setup_dat
-    ##          mus, x
-    ##  boosting_vec_indices, x
-
     if (function_type == 1) {
         message(cat("Creating posterior solving function...\n"))
         # Solve posterior given infection history and theta
@@ -493,7 +471,8 @@ create_posterior_func <- function(par_tab,
             y_new <- titre_data_fast(
                 theta,
                 infection_history_mat,
-                vaccination_info,
+                vaccination_hist_info,
+                abkinetics_model,
                 strain_isolation_times,
                 infection_strain_indices,
                 sample_times,
@@ -598,7 +577,8 @@ create_posterior_func <- function(par_tab,
             res <- inf_hist_prop_prior_v2_and_v4(
                 theta,
                 infection_history_mat,
-                vaccination_info,
+                vaccination_hist_info,
+                abkinetics_model,
                 probs,
                 sampled_indivs,
                 n_infs,
@@ -659,10 +639,8 @@ create_posterior_func <- function(par_tab,
 
             antigenic_maps <- make_antigenic_maps(antigenic_map_melted, theta)
 
-            
-            #cat("Start of titre fast A (posterior.R)")
             y_new <- titre_data_fast(
-                theta, infection_history_mat, vaccination_info, strain_isolation_times, infection_strain_indices,
+                theta, infection_history_mat, vaccination_hist_info, abkinetics_model, strain_isolation_times, infection_strain_indices,
                 sample_times, rows_per_indiv_in_samples, cum_nrows_per_individual_in_data,
                 nrows_per_blood_sample, measured_strain_indices,
                 antigenic_maps,
@@ -670,7 +648,6 @@ create_posterior_func <- function(par_tab,
                 mus, boosting_vec_indices,
                 titre_before_infection
             )
-           # cat("End of titre fast A (posterior.R)")
 
             if (use_measurement_bias) {
                 measurement_bias <- pars[measurement_indices_par_tab]

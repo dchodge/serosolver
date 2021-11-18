@@ -8,7 +8,6 @@ create_posterior_func(
   par_tab,
   titre_dat,
   vaccination_histories = NULL,
-  vaccination_histories_mat = NULL,
   antigenic_map = NULL,
   strain_isolation_times = NULL,
   version = 1,

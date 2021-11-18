@@ -165,7 +165,8 @@ arma::mat inf_hist_prop_prior_v3(
 List inf_hist_prop_prior_v2_and_v4(
           NumericVector theta, // Model parameters
 				  const IntegerMatrix infection_history_mat,  // Current infection history
-          List vaccination_history_info,  // Current vaccination history
+          List vaccination_hist_info,  // Current vaccination history
+                      const Function abkinetics_model,
 				  const NumericVector old_probs_1,
 				   const IntegerVector sampled_indivs,
 				   const IntegerVector n_years_samp_vec,
@@ -253,15 +254,15 @@ List inf_hist_prop_prior_v2_and_v4(
   NumericVector vac_history_strains;
   NumericVector vac_history_strains_indices;
   bool vac_null_ind = false;
-  if (vaccination_history_info["vac_history_matrix"] == R_NilValue) {
+
+  if (vaccination_hist_info["vac_history_matrix"] == R_NilValue) {
     vac_null_ind = true;
   } else {
-    NumericMatrix vac_history_matrix = vaccination_history_info["vac_history_matrix"];
-    NumericVector vac_history_strains = vaccination_history_info["vac_history_strains"];
-    NumericVector vac_history_strains_indices = vaccination_history_info["vac_history_strains_indices"];
+    NumericMatrix vac_history_matrix = vaccination_hist_info["vac_history_matrix"];
+    NumericVector vac_history_strains = vaccination_hist_info["vac_history_strains"];
+    NumericVector vac_history_strains_indices = vaccination_hist_info["vac_history_strains_indices"];
   }
  
-
   IntegerVector vaccination_history;
   LogicalVector indices_vac;
   NumericVector vaccination_times;
@@ -351,7 +352,8 @@ List inf_hist_prop_prior_v2_and_v4(
 
   List vaccination_info_i = List::create( 
       _["vac_times"] = NULL,
-      _["vac_indices"] = NULL
+      _["vac_indices"] = NULL,
+      _["vac_null_ind"] = vac_null_ind
   );
 
 
@@ -530,7 +532,7 @@ List inf_hist_prop_prior_v2_and_v4(
       ////////////////////////
       if(solve_likelihood && lik_changed)
       {
-        infection_history = infection_history_mat(i-1, _);
+        infection_history = infection_history_mat(i, _);
         indices = infection_history > 0;
         infection_times = circulation_times[indices];
 
@@ -540,7 +542,7 @@ List inf_hist_prop_prior_v2_and_v4(
 
         // Find vaccination history for individual i
         if (!vac_null_ind) {
-          vaccination_history = vac_history_matrix(i-1, _);
+          vaccination_history = vac_history_matrix(i, _);
           indices_vac = vaccination_history > 0;
           vaccination_times = vac_history_strains[indices_vac];
           vaccination_strain_indices_tmp = vac_history_strains_indices[indices_vac];
@@ -552,12 +554,13 @@ List inf_hist_prop_prior_v2_and_v4(
         indexing["index_in_samples"] = rows_per_indiv_in_samples[i-1];
         indexing["end_index_in_samples"] = rows_per_indiv_in_samples[i] - 1;
         indexing["start_index_in_data"] = cum_nrows_per_individual_in_data[i-1];
-
+        
         // ====================================================== //
         // =============== CHOOSE MODEL TO SOLVE =============== //
         // ====================================================== //
         if (base_function) {
           titre_data_fast_individual_base(
+         // abkinetics_model(
                   predicted_titres, 
                   theta,
                   infection_info,
@@ -595,6 +598,7 @@ List inf_hist_prop_prior_v2_and_v4(
                   antigenic_maps);
         } else {
           titre_data_fast_individual_base(
+          //abkinetics_model(
                   predicted_titres, 
                   theta,
                   infection_info,
@@ -631,8 +635,6 @@ List inf_hist_prop_prior_v2_and_v4(
       //////////////////////////////
       // METROPOLIS-HASTINGS STEP
       //////////////////////////////
-     // Rcpp::Rcout << "mh step" << std::endl;
-
 
       if(swap_step_option){ 
 	      log_prob = std::min<double>(0.0, (new_prob+prior_new) - (old_prob+prior_old));

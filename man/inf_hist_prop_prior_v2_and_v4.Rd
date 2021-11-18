@@ -7,8 +7,8 @@
 inf_hist_prop_prior_v2_and_v4(
   theta,
   infection_history_mat,
-  vaccination_histories,
-  vaccination_histories_mat,
+  vaccination_hist_info,
+  abkinetics_model,
   old_probs_1,
   sampled_indivs,
   n_years_samp_vec,
