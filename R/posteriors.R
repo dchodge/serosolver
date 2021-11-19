@@ -494,6 +494,8 @@ create_posterior_func <- function(par_tab,
                 titre_shifts <- measurement_bias[expected_indices]
                 y_new <- y_new + titre_shifts
             }
+          #  cat("infection_history_mat A: ", sum(infection_history_mat), "\n")
+          #  cat("predicted_titres A: ", sum(y_new), "\n")
 
             ## Transmission prob is the part of the likelihood function corresponding to each individual
             transmission_prob <- rep(0, n_indiv)
@@ -520,6 +522,7 @@ create_posterior_func <- function(par_tab,
                 ## Sum these for each individual
                 liks <- likelihood_func_fast(theta, titres_unique, y_new)
                 liks <- sum_buckets(liks, nrows_per_individual_in_data)
+
                 if (repeat_data_exist) {
                     liks_repeats <- likelihood_func_fast(theta, titres_repeats, y_new[repeat_indices])
                     liks <- liks + sum_buckets(liks_repeats, nrows_per_individual_in_data_repeats)
@@ -527,7 +530,10 @@ create_posterior_func <- function(par_tab,
             } else {
                 liks <- rep(-100000, n_indiv)
             }
-            #cat("liks func_1: ", sum(liks), "\n")
+           # cat("y_new A: ", sum(y_new == 0), "\n")
+          #/  cat("liks A: ", liks[1:50], "\n")
+           # cat("liks A: ", sum(liks), "\n")
+
             return(list(liks, transmission_prob))
         }
     } else if (function_type == 2) {
@@ -656,7 +662,6 @@ create_posterior_func <- function(par_tab,
                 titre_shifts <- measurement_bias[expected_indices]
                 y_new <- y_new + titre_shifts
             }
-          #  cat("End of function A")
 
             y_new[overall_indices]
         }

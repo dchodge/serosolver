@@ -16,7 +16,7 @@
 // [[Rcpp::export]]
 void titre_data_fast_individual_base(
             NumericVector &predicted_titres,
-            NumericVector &theta,
+            const NumericVector &theta,
             const List &infection_info,
             const List &vaccination_info,
             const List &setup_data,
@@ -121,7 +121,7 @@ void titre_data_fast_individual_base(
 
 
   for(int j = index_in_samples; j <= end_index_in_samples; ++j){
- //   Rcpp::Rcout << "In here and j is: " << j << std::endl;
+    //   Rcpp::Rcout << "In here and j is: " << j << std::endl;
     sampling_time = sample_times[j];
     n_inf = 0.0;
     n_vac = 0.0;
@@ -134,9 +134,9 @@ void titre_data_fast_individual_base(
     tmp_titre_index = start_index_in_data;
 
     // Sum all infections that would contribute towards observed titres at this time
-  //  Rcpp::Rcout << "max_inf_vac_times: " << max_inf_vac_times << std::endl;
+     //  Rcpp::Rcout << "max_inf_vac_times: " << max_inf_vac_times << std::endl;
     for (int x = 0; x < max_inf_vac_times; ++x){
-  //    Rcpp::Rcout << "indicatior_inf[x]: " << indicatior_inf[x] << std::endl;
+     //    Rcpp::Rcout << "indicatior_inf[x]: " << indicatior_inf[x] << std::endl;
       if (indicatior_inf[x]) {
         ++n_inf;
         // sampling through each predicted infection

@@ -65,9 +65,7 @@ run_MCMC_pt <- function(par_tab,
   )
 
   mcmc_pars_used[names(mcmc_pars)] <- mcmc_pars
-  cat(mcmc_pars_used[["temperature"]])
-
-  mcmc_pars
+  
   ## Extract MCMC parameters
   iterations <- mcmc_pars_used[["iterations"]] # How many iterations to run after adaptive period
   popt <- mcmc_pars_used[["popt"]] # Desired optimal acceptance rate
@@ -430,11 +428,6 @@ run_MCMC_pt <- function(par_tab,
   potential_swaps <- swaps <- 0
   
   ## Main body of running MCMC
-  cat("i_prev:, ", i_prev, "\n")
-  cat("iterations:, ", iterations, "\n")
-  cat("adaptive_period:, ", adaptive_period, "\n")
-  cat("burnin:, ", burnin, "\n")
-
   for (i in (i_prev + 1):(iterations + adaptive_period + burnin + i_prev)) 
   {
         if (i %% save_block == 0) message(cat("Current iteration: ", i, "\n", sep = "\t"))

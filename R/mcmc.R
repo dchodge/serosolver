@@ -110,7 +110,6 @@ run_MCMC <- function(par_tab,
     burnin <- mcmc_pars_used[["burnin"]] # Run this many iterations before attempting adaptation. Idea is to reduce getting stuck in local maxima
     move_size <- mcmc_pars_used[["move_size"]] # Number of infections to move/remove/add in each proposal step
     inf_propn <- mcmc_pars_used[["inf_propn"]] # Number of infections to move/remove/add in each proposal step
-    n_infs <- floor(length(antigenic_map$inf_times) * inf_propn)
     hist_opt <- mcmc_pars_used[["hist_opt"]] # Should infection history proposal step be adaptive?
     swap_propn <- mcmc_pars_used[["swap_propn"]] # If using gibbs, what proportion of proposals should be swap steps?
     hist_switch_prob <- mcmc_pars_used[["hist_switch_prob"]] # If using gibbs, what proportion of iterations should be swapping contents of two time periods?
@@ -170,6 +169,9 @@ run_MCMC <- function(par_tab,
   }
   n_indiv <- length(unique(titre_dat$individual)) # How many individuals in the titre_dat?
   
+  n_infs <- floor(length(antigenic_map$inf_times) * inf_propn)
+
+
   if (!is.null(titre_dat$DOB)) {
     DOBs <- unique(titre_dat[, c("individual", "DOB")])[, 2]
   } else {
@@ -211,7 +213,7 @@ run_MCMC <- function(par_tab,
       ## Prior version 4
       if (prior_on_total) {
         n_infections <- sum_infections_by_group(prior_infection_history, group_ids_vec, n_groups)
-        n_infections_group <- base::rowSums(n_infections)
+        n_infections_group <- rowSums(n_infections)
         cat(n_infections)
         cat(n_infections_group)
         prior_probab <- prior_probab + inf_mat_prior_total_group_cpp(
@@ -525,7 +527,6 @@ run_MCMC <- function(par_tab,
             }
             ## Gibbs sampler version, integrate out phi
         } else if (hist_proposal == 2) {
-         #   cat("new_total_posterior ", new_total_posterior, "\n") # from before
 
             ## Swap entire contents or propose new
 
@@ -537,7 +538,9 @@ run_MCMC <- function(par_tab,
                     indiv_likelihoods,
                     indiv_sub_sample,
                     alpha, beta,
-                    n_infs_vec, swap_propn, move_size,
+                    n_infs_vec,
+                    swap_propn,
+                    move_size,
                     histiter_add,
                     histaccepted_add,
                     histiter_move,
@@ -554,6 +557,8 @@ run_MCMC <- function(par_tab,
                 new_indiv_likelihoods <- prop_gibbs$old_probs
                 new_infection_histories <- prop_gibbs$new_infection_history
                 new_likelihoods_calculated <- TRUE
+               # cat("A sum(infection_histories): ", sum(infection_histories), "\n")
+                #cat("A sum(new_infection_histories): ", sum(new_infection_histories), "\n\n")
 
                 overall_swap_proposals <- prop_gibbs$overall_swap_proposals
                 overall_add_proposals <- prop_gibbs$overall_add_proposals
@@ -820,41 +825,41 @@ run_MCMC <- function(par_tab,
         histaccepted_move <- integer(n_indiv)
 
         if (hist_opt == 1) {
-       #   cat("n_infs_vec BEFORE: ", n_infs_vec, "\n")
             ## If adaptive infection history proposal
             ## Increase or decrease the number of infection history locations
             ## being changed to modify acceptance rate. If not accepting enough,
-         #   ## reduce number. If accepting too many, increase number
-          #  n_infs_vec[which(pcur_hist_add < popt_hist * (1 - OPT_TUNING))] <-
-         #       n_infs_vec[which(pcur_hist_add < popt_hist * (1 - OPT_TUNING))] - 1
-          #  n_infs_vec[which(pcur_hist_add >= popt_hist * (1 + OPT_TUNING))] <-
-          #      n_infs_vec[which(pcur_hist_add >= popt_hist * (1 + OPT_TUNING))] + 1
-         #   n_infs_vec[n_infs_vec < 1] <- 1
-      #    cat("n_infs_vec AFTER: ", n_infs_vec, "\n")
-      #    cat("move_sizes BEFORE: ", move_sizes, "\n")
+            ### reduce number. If accepting too many, increase number
+           # cat("n_infs_vec BEFORE: ", n_infs_vec, "\n")
+            n_infs_vec[which(pcur_hist_add < popt_hist * (1 - OPT_TUNING))] <-
+                n_infs_vec[which(pcur_hist_add < popt_hist * (1 - OPT_TUNING))] - 1
+            n_infs_vec[which(pcur_hist_add >= popt_hist * (1 + OPT_TUNING))] <-
+                n_infs_vec[which(pcur_hist_add >= popt_hist * (1 + OPT_TUNING))] + 1
+            n_infs_vec[n_infs_vec < 1] <- 1
+         #   cat("n_infs_vec AFTER: ", n_infs_vec, "\n")
+         #   cat("move_sizes BEFORE: ", move_sizes, "\n")
 
             move_sizes[which(pcur_hist_move < popt_hist * (1 - OPT_TUNING))] <-
                 move_sizes[which(pcur_hist_move < popt_hist * (1 - OPT_TUNING))] - 1
             move_sizes[which(pcur_hist_move >= popt_hist * (1 + OPT_TUNING))] <-
                 move_sizes[which(pcur_hist_move >= popt_hist * (1 + OPT_TUNING))] + 1
            move_sizes[move_sizes < 1] <- 1
-         # cat("move_sizes AFTER: ", move_sizes, "\n")
+        #  cat("move_sizes AFTER: ", move_sizes, "\n")
 
             for (ii in seq_along(n_infs_vec)) {
                 move_sizes[ii] <- min(move_sizes[ii], length(age_mask[ii]:strain_mask[ii]))
                 move_sizes[ii] <- min(move_sizes[ii], 10)
                 n_infs_vec[ii] <- min(n_infs_vec[ii], length(age_mask[ii]:strain_mask[ii]))
             }
-          #  cat("n_infs_vec AFTER AFTER: ", n_infs_vec, "\n")
-          #  cat("move_sizes AFTER AFTER: ", move_sizes, "\n")
-
+        #    cat("n_infs_vec VERY AFTER: ", n_infs_vec, "\n")
+        #    cat("move_sizes VERY AFTER: ", move_sizes, "\n")
         }
-        ## Look at infection history proposal sizes
-          message(cat("Current posterior : ", total_posterior, "\n", sep = "\t"))
-          message(cat("Current likelihood : ", total_likelihood, "\n", sep = "\t"))
-          message(cat("Current prior : ", total_prior_prob, "\n", sep = "\t"))
-          names(current_pars) <- par_names
-          message(cat("Current pars : ", current_pars[unfixed_pars], "\n", sep = "\t"))
+
+      ## Look at infection history proposal sizes
+        message(cat("Current posterior : ", total_posterior, "\n", sep = "\t"))
+        message(cat("Current likelihood : ", total_likelihood, "\n", sep = "\t"))
+        message(cat("Current prior : ", total_prior_prob, "\n", sep = "\t"))
+       # names(current_pars) <- par_names
+        message(cat("Current pars : ", current_pars[unfixed_pars], "\n", sep = "\t"))
 
       #  message(cat("Pcur hist add: ", head(signif(pcur_hist_add, 3)), "\n", sep = "\t"))
         message(cat("No. infections sampled: ", head(n_infs_vec), "\n", sep = "\t"))

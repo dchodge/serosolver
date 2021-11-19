@@ -5,7 +5,7 @@ using namespace Rcpp;
 #define TITRE_DATA_FAST_INDIVIDUAL_BASE_H
 void titre_data_fast_individual_base(
 					NumericVector &predicted_titres,
-					NumericVector &theta,
+					const NumericVector &theta,
                     const List & infection_info,
                     const List &vaccination_info,
 					const List &setup_dat,

@@ -116,7 +116,6 @@ NumericVector titre_data_fast(NumericVector theta,
   for (int i = 1; i <= n; ++i) {
     // Find infection times for individual i
     infection_history = infection_history_mat(i-1, _);
-    //Rcpp::Rcout << "infection_history: " << infection_history << ". Number: "<< i << std::endl;
     indices = infection_history > 0;
     infection_times = circulation_times[indices];
 
@@ -152,9 +151,8 @@ NumericVector titre_data_fast(NumericVector theta,
       // Go to sub function - this is where we have options for different models
       // Note, these are in "boosting_functions.cpp"
       if (base_function) {
-
-      //  titre_data_fast_individual_base(
-            abkinetics_model(
+        //titre_data_fast_individual_base(
+           abkinetics_model(
               predicted_titres, 
               theta,
               infection_info,
@@ -191,7 +189,7 @@ NumericVector titre_data_fast(NumericVector theta,
               indexing,
               antigenic_maps);
       } else {
-	         //titre_data_fast_individual_base(
+	        //titre_data_fast_individual_base(
             abkinetics_model(
               predicted_titres, 
               theta,
