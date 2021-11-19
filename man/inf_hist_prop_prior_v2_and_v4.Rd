@@ -7,8 +7,8 @@
 inf_hist_prop_prior_v2_and_v4(
   theta,
   infection_history_mat,
-  vaccination_histories,
-  vaccination_histories_mat,
+  vaccination_hist_info,
+  abkinetics_model,
   old_probs_1,
   sampled_indivs,
   n_years_samp_vec,
@@ -32,10 +32,7 @@ inf_hist_prop_prior_v2_and_v4(
   nrows_per_blood_sample,
   group_id_vec,
   measurement_strain_indices,
-  antigenic_map_long,
-  antigenic_map_short,
-  antigenic_map_long_vac,
-  antigenic_map_short_vac,
+  antigenic_maps,
   antigenic_distances,
   data,
   repeat_data,
@@ -104,10 +101,6 @@ inf_hist_prop_prior_v2_and_v4(
 
 \item{measurement_strain_indices}{IntegerVector, For each titre measurement, corresponding entry in antigenic map}
 
-\item{antigenic_map_long}{NumericVector, the collapsed cross reactivity map for long term boosting, after multiplying by sigma1, see \code{\link{create_cross_reactivity_vector}}}
-
-\item{antigenic_map_short}{NumericVector, the collapsed cross reactivity map for short term boosting, after multiplying by sigma2, see \code{\link{create_cross_reactivity_vector}}}
-
 \item{antigenic_distances}{NumericVector matching the dimensions of antigenic_map_long and antigenic_map_short, but with the raw antigenic distances between strains}
 
 \item{data}{NumericVector, data for all individuals for the first instance of each calculated titre}
@@ -135,6 +128,10 @@ inf_hist_prop_prior_v2_and_v4(
 \item{temp}{double, temperature for parallel tempering MCMC}
 
 \item{solve_likelihood}{bool, if FALSE does not solve likelihood when calculating acceptance probability}
+
+\item{antigenic_map_long}{NumericVector, the collapsed cross reactivity map for long term boosting, after multiplying by sigma1, see \code{\link{create_cross_reactivity_vector}}}
+
+\item{antigenic_map_short}{NumericVector, the collapsed cross reactivity map for short term boosting, after multiplying by sigma2, see \code{\link{create_cross_reactivity_vector}}}
 }
 \value{
 an R list with 6 entries: 1) the vector replacing old_probs_1, corresponding to the new likelihoods per individual; 2) the matrix of 1s and 0s corresponding to the new infection histories for all individuals; 3-6) the updated entries for proposal_iter, accepted_iter, proposal_swap and accepted_swap.

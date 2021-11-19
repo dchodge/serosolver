@@ -68,7 +68,7 @@ double inf_mat_prior_group_cpp(const IntegerMatrix& n_infections, const IntegerM
       n = n_alive(j,i); // Number of individuals alive in that time
       // Only solve if n > 0
       if(n > 0){
-	lik += R::lbeta(m+alpha,n-m+beta)-lbeta_const; // Contribution of augmented data and prior for that time
+	      lik += R::lbeta(m+alpha,n-m+beta)-lbeta_const; // Contribution of augmented data and prior for that time
       }
     }
   }

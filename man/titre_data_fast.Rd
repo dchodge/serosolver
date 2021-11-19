@@ -7,7 +7,8 @@
 titre_data_fast(
   theta,
   infection_history_mat,
-  vaccination_histories,
+  vaccination_hist_info,
+  abkinetics_model,
   circulation_times,
   circulation_times_indices,
   sample_times,
@@ -15,10 +16,7 @@ titre_data_fast(
   cum_nrows_per_individual_in_data,
   nrows_per_blood_sample,
   measurement_strain_indices,
-  antigenic_map_long,
-  antigenic_map_short,
-  antigenic_map_long_vac,
-  antigenic_map_short_vac,
+  antigenic_maps,
   antigenic_distances,
   mus,
   boosting_vec_indices,
@@ -44,10 +42,6 @@ titre_data_fast(
 
 \item{measurement_strain_indices}{IntegerVector, the indices of all measured strains in the melted antigenic map, with one entry per measured titre}
 
-\item{antigenic_map_long}{NumericVector, the collapsed cross reactivity map for long term boosting, after multiplying by sigma1 see \code{\link{create_cross_reactivity_vector}}}
-
-\item{antigenic_map_short}{NumericVector, the collapsed cross reactivity map for short term boosting, after multiplying by sigma2, see \code{\link{create_cross_reactivity_vector}}}
-
 \item{antigenic_distances}{NumericVector, the collapsed cross reactivity map giving euclidean antigenic distances, see \code{\link{create_cross_reactivity_vector}}}
 
 \item{mus}{NumericVector, if length is greater than one, assumes that strain-specific boosting is used rather than a single boosting parameter}
@@ -55,6 +49,10 @@ titre_data_fast(
 \item{boosting_vec_indices}{IntegerVector, same length as circulation_times, giving the index in the vector \code{mus} that each entry should use as its boosting parameter.}
 
 \item{boost_before_infection}{bool to indicate if calculated titre for that time should be before the infection has occurred, used to calculate titre-mediated immunity}
+
+\item{antigenic_map_long}{NumericVector, the collapsed cross reactivity map for long term boosting, after multiplying by sigma1 see \code{\link{create_cross_reactivity_vector}}}
+
+\item{antigenic_map_short}{NumericVector, the collapsed cross reactivity map for short term boosting, after multiplying by sigma2, see \code{\link{create_cross_reactivity_vector}}}
 }
 \value{
 NumericVector of predicted titres for each entry in measurement_strain_indices
