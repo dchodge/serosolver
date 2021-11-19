@@ -153,8 +153,8 @@ NumericVector titre_data_fast(NumericVector theta,
       // Note, these are in "boosting_functions.cpp"
       if (base_function) {
 
-        titre_data_fast_individual_base(
-          //  abkinetics_model(
+      //  titre_data_fast_individual_base(
+            abkinetics_model(
               predicted_titres, 
               theta,
               infection_info,
@@ -191,8 +191,8 @@ NumericVector titre_data_fast(NumericVector theta,
               indexing,
               antigenic_maps);
       } else {
-	         titre_data_fast_individual_base(
-            //abkinetics_model(
+	         //titre_data_fast_individual_base(
+            abkinetics_model(
               predicted_titres, 
               theta,
               infection_info,

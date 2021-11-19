@@ -268,6 +268,9 @@ prob_mus_vac <- function(mus, pars) {
 #' @export
 make_antigenic_maps <- function(antigenic_map_melted, theta) {
 
+   # cat("antigenic_map_melted: ", antigenic_map_melted)
+   # cat("theta[`sigma1`]: ", theta["sigma1"])
+
     antigenic_map_long <- create_cross_reactivity_vector(antigenic_map_melted, theta["sigma1"])
     antigenic_map_short <- create_cross_reactivity_vector(antigenic_map_melted, theta["sigma2"])
     antigenic_map_long_vac <- create_cross_reactivity_vector(antigenic_map_melted, theta["sigma1"] * theta["sigma2"])
@@ -466,6 +469,7 @@ create_posterior_func <- function(par_tab,
             }
 
             antigenic_maps <- make_antigenic_maps(antigenic_map_melted, theta)
+         #   cat(antigenic_maps$long)
 
             ## Calculate titres for measured data
             y_new <- titre_data_fast(
@@ -484,8 +488,7 @@ create_posterior_func <- function(par_tab,
                 antigenic_distances,
                 mus,
                 boosting_vec_indices
-            )
-
+            ) 
             if (use_measurement_bias) {
                 measurement_bias <- pars[measurement_indices_par_tab]
                 titre_shifts <- measurement_bias[expected_indices]
@@ -524,7 +527,7 @@ create_posterior_func <- function(par_tab,
             } else {
                 liks <- rep(-100000, n_indiv)
             }
-
+            #cat("liks func_1: ", sum(liks), "\n")
             return(list(liks, transmission_prob))
         }
     } else if (function_type == 2) {
@@ -628,7 +631,6 @@ create_posterior_func <- function(par_tab,
         message(cat("Creating model solving function...\n"))
         ## Final version is just the model solving function
         f <- function(pars, infection_history_mat) {
-           # cat("Start of function A")
 
             theta <- pars[theta_indices]
             names(theta) <- par_names_theta

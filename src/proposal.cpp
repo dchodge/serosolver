@@ -163,39 +163,39 @@ arma::mat inf_hist_prop_prior_v3(
 //' @family infection_history_proposal
 // [[Rcpp::export]]
 List inf_hist_prop_prior_v2_and_v4(
-          NumericVector theta, // Model parameters
-				  const IntegerMatrix infection_history_mat,  // Current infection history
-          List vaccination_hist_info,  // Current vaccination history
+          NumericVector &theta, // Model parameters
+				  const IntegerMatrix &infection_history_mat,  // Current infection history
+          List &vaccination_hist_info,  // Current vaccination history
                       const Function abkinetics_model,
-				  const NumericVector old_probs_1,
-				   const IntegerVector sampled_indivs,
-				   const IntegerVector n_years_samp_vec,
-				   const IntegerVector age_mask, // Age mask
-				   const IntegerVector strain_mask, // Age mask
-				   const IntegerMatrix n_alive, // No. of individuals alive each year/group
-				   IntegerMatrix n_infections, // No. of infections in each year/group
-				   IntegerVector n_infected_group,
-				   const NumericMatrix prior_lookup,
-				   const double swap_propn,
-				   const int swap_distance,
-				   const bool propose_from_prior,
-				   const double alpha, // Alpha for prior
-				   const double beta, // Beta for prior
-				   const NumericVector circulation_times,
-				   const IntegerVector circulation_times_indices,
-				   const NumericVector sample_times,
-				   const IntegerVector rows_per_indiv_in_samples, // How many rows in unique sample times table correspond to each individual?
-				   const IntegerVector cum_nrows_per_individual_in_data, // How many rows in the titre data correspond to each individual?
-				   const IntegerVector cum_nrows_per_individual_in_repeat_data, // How many rows in the repeat titre data correspond to each individual?
-				   const IntegerVector nrows_per_blood_sample, // How many rows in the titre data table correspond to each unique individual + sample time + repeat?
-				   const IntegerVector group_id_vec, // Which group does each individual belong to?
-				   const IntegerVector measurement_strain_indices, // For each titre measurement, corresponding entry in antigenic map
-				   const List antigenic_maps, 
-				   const NumericVector antigenic_distances,
-				   const NumericVector data,
-				   const NumericVector repeat_data,
-				   const IntegerVector repeat_indices,
-				   const NumericVector titre_shifts,
+				  const NumericVector &old_probs_1,
+				   const IntegerVector &sampled_indivs,
+				   const IntegerVector &n_years_samp_vec,
+				   const IntegerVector &age_mask, // Age mask
+				   const IntegerVector &strain_mask, // Age mask
+				   const IntegerMatrix &n_alive, // No. of individuals alive each year/group
+				   IntegerMatrix &n_infections, // No. of infections in each year/group
+				   IntegerVector &n_infected_group,
+				   const NumericMatrix &prior_lookup,
+				   const double &swap_propn,
+				   const int &swap_distance,
+				   const bool &propose_from_prior,
+				   const double &alpha, // Alpha for prior
+				   const double &beta, // Beta for prior
+				   const NumericVector &circulation_times,
+				   const IntegerVector &circulation_times_indices,
+				   const NumericVector &sample_times,
+				   const IntegerVector &rows_per_indiv_in_samples, // How many rows in unique sample times table correspond to each individual?
+				   const IntegerVector &cum_nrows_per_individual_in_data, // How many rows in the titre data correspond to each individual?
+				   const IntegerVector &cum_nrows_per_individual_in_repeat_data, // How many rows in the repeat titre data correspond to each individual?
+				   const IntegerVector &nrows_per_blood_sample, // How many rows in the titre data table correspond to each unique individual + sample time + repeat?
+				   const IntegerVector &group_id_vec, // Which group does each individual belong to?
+				   const IntegerVector &measurement_strain_indices, // For each titre measurement, corresponding entry in antigenic map
+				   const List &antigenic_maps, 
+				   const NumericVector &antigenic_distances,
+				   const NumericVector &data,
+				   const NumericVector &repeat_data,
+				   const IntegerVector &repeat_indices,
+				   const NumericVector &titre_shifts,
 				   IntegerVector proposal_iter, //
 				   IntegerVector accepted_iter,  //
 				   IntegerVector proposal_swap, //
@@ -203,9 +203,9 @@ List inf_hist_prop_prior_v2_and_v4(
 				   IntegerMatrix overall_swap_proposals, //
 				   IntegerMatrix overall_add_proposals, //
 				   const NumericVector time_sample_probs, //
-				   const NumericVector mus,
-				   const IntegerVector boosting_vec_indices,
-				   const IntegerVector total_alive,
+				   const NumericVector &mus,
+				   const IntegerVector &boosting_vec_indices,
+				   const IntegerVector &total_alive,
 				   const double temp=1,
 				   bool solve_likelihood=true				   
 				   ){
@@ -272,10 +272,10 @@ List inf_hist_prop_prior_v2_and_v4(
   // ########################################################################
   // Parameters related to infection history sampling
   int indiv; // Index of the individual under consideration
-  //IntegerVector samps_A; // Variable vector to sample from
+  IntegerVector samps_A; // Variable vector to sample from
   IntegerVector samps_B; // Variable vector to sample from
 
-  //IntegerVector samps_shifted_A;
+  IntegerVector samps_shifted_A;
   IntegerVector samps_shifted_B;
 
   IntegerVector locs; // Vector of locations that were sampled
@@ -385,9 +385,11 @@ List inf_hist_prop_prior_v2_and_v4(
       // Sample n_samp_length. Ths will be used to pull years from sample_years
       n_samp_max = std::min(n_years_samp, n_samp_length); // Use the smaller of these two numbers, potentially multiple swaps
     }
-    int n_samp_length_A = n_samp_length - 1;
-    IntegerVector samps_A(n_samp_length_A); // Variable vector to sample from
-    IntegerVector samps_shifted_A(n_samp_length_A); // Variable vector to sample from
+
+    //int n_samp_length_A = n_samp_length - 1;
+    //IntegerVector samps_A(n_samp_length_A); // Variable vector to sample from
+    //IntegerVector samps_shifted_A(n_samp_length_A); // Variable vector to sample from
+    
     samps_A = Rcpp::seq(0, n_samp_length - 1);    // Create vector from 0:length of alive years
     // Extract time sampling probabilities and re-normalise
     samps_shifted_A = samps_A + age_mask[indiv] - 1;    
@@ -408,7 +410,6 @@ List inf_hist_prop_prior_v2_and_v4(
     if (n_samp_max > samps_B.size()) { 
       n_samp_max = samps_B.size() - 1;
     }
-
     locs = RcppArmadillo::sample(samps_B, n_samp_max, FALSE, tmp_loc_sample_probs_normal);
 
     for(int j = 0; j < n_samp_max; ++j) 
@@ -433,8 +434,8 @@ List inf_hist_prop_prior_v2_and_v4(
         loc1 += age_mask[indiv] - 1;
         loc2 += age_mask[indiv] - 1;
 
-        loc1_val_old = new_infection_history[loc1];
-        loc2_val_old = new_infection_history[loc2];
+        loc1_val_old = new_infection_history(loc1);
+        loc2_val_old = new_infection_history(loc2);
 
         overall_swap_proposals(indiv,loc1)++;
         overall_swap_proposals(indiv,loc2)++;
@@ -451,8 +452,8 @@ List inf_hist_prop_prior_v2_and_v4(
               m_2_old = n_infections(group_id, loc2);
 
               // Swap contents
-              new_infection_history[loc1] = new_infection_history[loc2];
-              new_infection_history[loc2] = loc1_val_old;
+              new_infection_history(loc1) = new_infection_history(loc2);
+              new_infection_history(loc2) = loc1_val_old;
             
               // Prior for new state
               m_1_new = m_1_old - loc1_val_old + loc2_val_old;
@@ -475,8 +476,8 @@ List inf_hist_prop_prior_v2_and_v4(
         ///////////////////////////////////////////////////////
       } else {
         year = locs[j] + age_mask[indiv] - 1;
-        old_entry = new_infection_history[year];
-        overall_add_proposals(indiv, year) = overall_add_proposals(indiv, year) + 1;
+        old_entry = new_infection_history(year);
+        overall_add_proposals(indiv, year)++;
         if(!prior_on_total){	
           // Get number of individuals that were alive and/or infected in that year,
           // less the current individual
@@ -495,21 +496,21 @@ List inf_hist_prop_prior_v2_and_v4(
           double rand1_a = R::runif(0,1);
           if(rand1_a < ratio_a){
             new_entry = 1;
-            new_infection_history[year] = 1;
+            new_infection_history(year) = 1;
           } else {
             new_entry = 0;
-            new_infection_history[year] = 0;
+            new_infection_history(year) = 0;
           }
         } else {
 
           if(old_entry == 0) {
             new_entry = 1;
-            new_infection_history[year] = 1;
+            new_infection_history(year) = 1;
             //prior_new = ratio;
             //prior_old = 1-ratio;
           } else {
             new_entry = 0;
-            new_infection_history[year] = 0;
+            new_infection_history(year) = 0;
             //prior_new = 1-ratio;
             //prior_old = ratio;
           }
@@ -532,7 +533,7 @@ List inf_hist_prop_prior_v2_and_v4(
       ////////////////////////
       if(solve_likelihood && lik_changed)
       {
-        infection_history = infection_history_mat(i, _);
+        infection_history = new_infection_history_mat(indiv, _);
         indices = infection_history > 0;
         infection_times = circulation_times[indices];
 
@@ -559,8 +560,8 @@ List inf_hist_prop_prior_v2_and_v4(
         // =============== CHOOSE MODEL TO SOLVE =============== //
         // ====================================================== //
         if (base_function) {
-          titre_data_fast_individual_base(
-         // abkinetics_model(
+          //titre_data_fast_individual_base(
+          abkinetics_model(
                   predicted_titres, 
                   theta,
                   infection_info,
@@ -597,8 +598,8 @@ List inf_hist_prop_prior_v2_and_v4(
                   indexing,
                   antigenic_maps);
         } else {
-          titre_data_fast_individual_base(
-          //abkinetics_model(
+         // titre_data_fast_individual_base(
+          abkinetics_model(
                   predicted_titres, 
                   theta,
                   infection_info,

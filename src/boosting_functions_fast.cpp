@@ -24,8 +24,6 @@ void titre_data_fast_individual_base(
             const List &antigenic_maps
           ){
 
-  Rcpp::Rcout << "predicted_titres (Start): " << predicted_titres << std::endl;
-
   int max_vaccinations;
   bool vac_flag = !vaccination_info["vac_null_ind"];
   NumericVector vaccination_times;
@@ -36,7 +34,6 @@ void titre_data_fast_individual_base(
   }
 
   NumericVector infection_times = infection_info["inf_times"];
-  Rcpp::Rcout << "infection_times: " << infection_times << std::endl;
   IntegerVector infection_strain_indices_tmp = infection_info["inf_indices"];
 
 	bool boost_before_infection = false;
@@ -116,6 +113,12 @@ void titre_data_fast_individual_base(
         break;
     }
   }
+ // Rcpp::Rcout <<  "infection_times: " <<  infection_times << std::endl;
+ // Rcpp::Rcout <<  "inf_vac_times: " <<  inf_vac_times << std::endl;
+ // Rcpp::Rcout <<  "indicatior_inf: " <<  indicatior_inf << std::endl;
+
+ // Rcpp::Rcout <<  "infection_strain_indices_tmp: " <<  infection_strain_indices_tmp << std::endl;
+
 
   for(int j = index_in_samples; j <= end_index_in_samples; ++j){
  //   Rcpp::Rcout << "In here and j is: " << j << std::endl;
@@ -148,7 +151,6 @@ void titre_data_fast_individual_base(
             inf_map_index = infection_strain_indices_tmp[x_inf]; // Index of this infecting strain in antigenic map
       //      Rcpp::Rcout << "n_titres: " << n_titres  << std::endl;
             for(int k = 0; k < n_titres; ++k){
-
               index = measurement_strain_indices[tmp_titre_index + k]*number_strains + inf_map_index;
               predicted_titres[tmp_titre_index + k] += seniority *
                 ((mu*antigenic_map_long[index]) + (mu_short*antigenic_map_short[index])*wane_amount);
@@ -179,7 +181,6 @@ void titre_data_fast_individual_base(
     }
     start_index_in_data = end_index_in_data;
   }
-  Rcpp::Rcout << "predicted_titres (END): " << predicted_titres << std::endl;
 }
 
 
