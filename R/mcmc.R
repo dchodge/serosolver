@@ -76,7 +76,22 @@ run_MCMC <- function(par_tab,
                      solve_likelihood = TRUE,
                      n_alive = NULL,
                      continue_run = FALSE,
+                     custom_ab_kin_func = NULL,
+                     custom_antigenic_maps_func = NULL,
+                     custom_cal_other_pars=NULL,
                      ...) {
+  
+  if (is.null(custom_ab_kin_func)) {
+    ab_kin_func <- titre_data_fast_individual_base
+  } else { 
+    ab_kin_func <- custom_ab_kin_func
+  }
+  if (is.null(custom_antigenic_maps_func)) {
+    make_antigenic_maps <- make_antigenic_maps_default
+  } else {
+    make_antigenic_maps <- custom_antigenic_maps_func
+  }
+
   ## Error checks --------------------------------------
   check_par_tab(par_tab, TRUE, version)
   if(!("vac_flag" %in% par_tab$names)) {
@@ -168,9 +183,13 @@ run_MCMC <- function(par_tab,
     antigenic_map <- data.frame("x_coord"=1,"y_coord"=1,"inf_times"=strain_isolation_times)
   }
   n_indiv <- length(unique(titre_dat$individual)) # How many individuals in the titre_dat?
-  
   n_infs <- floor(length(antigenic_map$inf_times) * inf_propn)
 
+  #  if (is.null(custom_cal_other_pars)) {
+  #    other_pars <- list()
+  #  } else {
+  #    other_pars <- custom_cal_other_pars(mu_indices, strain_isolation_times)
+  #  }
 
   if (!is.null(titre_dat$DOB)) {
     DOBs <- unique(titre_dat[, c("individual", "DOB")])[, 2]
@@ -246,6 +265,9 @@ run_MCMC <- function(par_tab,
     mu_indices = mu_indices,
     n_alive = n_alive,
     function_type = 1,
+    custom_ab_kin_func = ab_kin_func,
+    custom_antigenic_maps_func = make_antigenic_maps,
+    custom_cal_other_pars = custom_cal_other_pars,
     ...
   ))
 
@@ -268,6 +290,9 @@ run_MCMC <- function(par_tab,
       mu_indices = mu_indices,
       n_alive = n_alive,
       function_type = 2,
+      custom_ab_kin_func = ab_kin_func,
+      custom_antigenic_maps_func = make_antigenic_maps,
+      custom_cal_other_pars = custom_cal_other_pars,
       ...
     ))
   }
@@ -557,8 +582,6 @@ run_MCMC <- function(par_tab,
                 new_indiv_likelihoods <- prop_gibbs$old_probs
                 new_infection_histories <- prop_gibbs$new_infection_history
                 new_likelihoods_calculated <- TRUE
-               # cat("A sum(infection_histories): ", sum(infection_histories), "\n")
-                #cat("A sum(new_infection_histories): ", sum(new_infection_histories), "\n\n")
 
                 overall_swap_proposals <- prop_gibbs$overall_swap_proposals
                 overall_add_proposals <- prop_gibbs$overall_add_proposals

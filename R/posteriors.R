@@ -262,23 +262,6 @@ prob_mus_vac <- function(mus, pars) {
   return(sum(dnorm(mus, mu_mean, mu_sd, log = TRUE)))
 }
 
-
-### CUSTOM FUNCTION
-#' Function to make the antigenic maps
-#' @export
-make_antigenic_maps <- function(antigenic_map_melted, theta) {
-
-   # cat("antigenic_map_melted: ", antigenic_map_melted)
-   # cat("theta[`sigma1`]: ", theta["sigma1"])
-
-    antigenic_map_long <- create_cross_reactivity_vector(antigenic_map_melted, theta["sigma1"])
-    antigenic_map_short <- create_cross_reactivity_vector(antigenic_map_melted, theta["sigma2"])
-    antigenic_map_long_vac <- create_cross_reactivity_vector(antigenic_map_melted, theta["sigma1"] * theta["sigma2"])
-    antigenic_map_short_vac <- create_cross_reactivity_vector(antigenic_map_melted, theta["sigma2_vac"])
-
-    return(list(long = antigenic_map_long, short = antigenic_map_short, long_vac = antigenic_map_long_vac, short_vac = antigenic_map_short_vac))
-}
-
 #' Posterior function pointer
 #'
 #' Takes all of the input data/parameters and returns a function pointer. This function finds the posterior for a given set of input parameters (theta) and infection histories without needing to pass the data set back and forth. No example is provided for function_type=2, as this should only be called within \code{\link{run_MCMC}}
@@ -325,10 +308,23 @@ create_posterior_func <- function(par_tab,
                                   mu_indices = NULL,
                                   n_alive = NULL,
                                   function_type = 1,
+                                  custom_ab_kin_func = NULL,
                                   titre_before_infection=FALSE,
+                                  custom_antigenic_maps_func=NULL,
+                                  custom_cal_other_pars=NULL,
                                   ...) {
 
-    abkinetics_model <- makeFuncPtr(titre_data_fast_individual_base)
+    if (is.null(custom_ab_kin_func)) {
+      ab_kin_func <- titre_data_fast_individual_base
+    } else { 
+      ab_kin_func <- custom_ab_kin_func
+    }
+
+    if (is.null(custom_antigenic_maps_func)) {
+      make_antigenic_maps <- make_antigenic_maps_default
+    } else {
+      make_antigenic_maps <- custom_antigenic_maps_func
+    }
 
     check_par_tab(par_tab, TRUE, version)
     if (!("group" %in% colnames(titre_dat))) {
@@ -388,7 +384,6 @@ create_posterior_func <- function(par_tab,
     n_indiv <- setup_dat$n_indiv
     DOBs <- setup_dat$DOBs
   
-
 #########################################################
     ## Extract parameter type indices from par_tab, to split up
     ## similar parameters in model solving functions
@@ -444,12 +439,19 @@ create_posterior_func <- function(par_tab,
         expected_indices <- c(-1)
     }
 
-    if (use_strain_dependent) {
-        boosting_vec_indices <- mu_indices - 1
-        mus <- rep(2, length(strain_isolation_times))
+    if (is.null(custom_cal_other_pars)) {
+      other_pars <- list()
     } else {
-        boosting_vec_indices <- mus <- c(-1)
+      other_pars <- custom_cal_other_pars(mu_indices, strain_isolation_times)
     }
+
+
+   # if (use_strain_dependent) {
+   #     boosting_vec_indices <- mu_indices - 1
+   #     mus <- rep(2, length(strain_isolation_times))
+   # } else {
+   #     boosting_vec_indices <- mus <- c(-1)
+   # }
 
     if (!repeat_data_exist) {
         repeat_indices_cpp <- c(-1)
@@ -469,14 +471,13 @@ create_posterior_func <- function(par_tab,
             }
 
             antigenic_maps <- make_antigenic_maps(antigenic_map_melted, theta)
-         #   cat(antigenic_maps$long)
 
             ## Calculate titres for measured data
             y_new <- titre_data_fast(
                 theta,
                 infection_history_mat,
                 vaccination_hist_info,
-                abkinetics_model,
+                ab_kin_func,
                 strain_isolation_times,
                 infection_strain_indices,
                 sample_times,
@@ -486,8 +487,7 @@ create_posterior_func <- function(par_tab,
                 measured_strain_indices,
                 antigenic_maps,
                 antigenic_distances,
-                mus,
-                boosting_vec_indices
+                other_pars
             ) 
             if (use_measurement_bias) {
                 measurement_bias <- pars[measurement_indices_par_tab]
@@ -587,7 +587,7 @@ create_posterior_func <- function(par_tab,
                 theta,
                 infection_history_mat,
                 vaccination_hist_info,
-                abkinetics_model,
+                ab_kin_func,
                 probs,
                 sampled_indivs,
                 n_infs,
@@ -624,8 +624,7 @@ create_posterior_func <- function(par_tab,
                 overall_swap_proposals,
                 overall_add_proposals,
                 proposal_ratios,
-                mus,
-                boosting_vec_indices,
+                other_pars,
                 n_alive_total,
                 temp,
                 solve_likelihood
@@ -648,12 +647,12 @@ create_posterior_func <- function(par_tab,
             antigenic_maps <- make_antigenic_maps(antigenic_map_melted, theta)
 
             y_new <- titre_data_fast(
-                theta, infection_history_mat, vaccination_hist_info, abkinetics_model, strain_isolation_times, infection_strain_indices,
+                theta, infection_history_mat, vaccination_hist_info, ab_kin_func, strain_isolation_times, infection_strain_indices,
                 sample_times, rows_per_indiv_in_samples, cum_nrows_per_individual_in_data,
                 nrows_per_blood_sample, measured_strain_indices,
                 antigenic_maps,
                 antigenic_distances,
-                mus, boosting_vec_indices,
+                other_pars,
                 titre_before_infection
             )
 

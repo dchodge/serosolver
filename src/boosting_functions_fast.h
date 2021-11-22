@@ -10,7 +10,8 @@ void titre_data_fast_individual_base(
                     const List &vaccination_info,
 					const List &setup_dat,
 					const List &indexing,
-				    const List &antigenic_maps
+				    const List &antigenic_maps,
+					const List &other_pars
 				    );
 #endif
 
@@ -24,8 +25,8 @@ void titre_data_fast_individual_wane2(
 					   const List &vaccination_info,
 					  const List &setup_dat,
 					  const List &indexing,
-				    	const List &antigenic_maps
-
+				    	const List &antigenic_maps,
+						const List &other_pars
 				      );
 #endif
 
@@ -38,21 +39,20 @@ void titre_data_fast_individual_titredep(
 					const List &vaccination_info,
 					const List &setup_dat,
 					const List &indexing,
-				    const List &antigenic_maps
+				    const List &antigenic_maps,
+					const List &other_pars
 				);
 #endif
 
 #ifndef TITRE_DATA_FAST_INDIVIDUAL_STRAIN_DEPENDENT_H
 #define TITRE_DATA_FAST_INDIVIDUAL_STRAIN_DEPENDENT_H
 void titre_data_fast_individual_strain_dependent(NumericVector &predicted_titres,
-						 const NumericVector &mus,
-						 const IntegerVector &boosting_vec_indices,
 						 NumericVector &theta,
                          const List & infection_info,
 						 const List &vaccination_info,
 						 const List &setup_dat,
 					     const List &indexing,
-				    const List &antigenic_maps
-
+				    const List &antigenic_maps,
+					const List &other_pars
 						 );
 #endif

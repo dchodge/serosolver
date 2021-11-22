@@ -31,7 +31,21 @@ run_MCMC_pt <- function(par_tab,
                              solve_likelihood = TRUE,
                              n_alive = NULL,
                              continue_run = FALSE,
+                             custom_ab_kin_func = NULL,
+                             custom_antigenic_maps_func = NULL,
+                             custom_cal_other_pars=NULL,
                              ...) {
+    if (is.null(custom_ab_kin_func)) {
+      ab_kin_func <- titre_data_fast_individual_base
+    } else { 
+      ab_kin_func <- custom_ab_kin_func
+    }
+    if (is.null(custom_antigenic_maps_func)) {
+      make_antigenic_maps <- make_antigenic_maps_default
+    } else {
+      make_antigenic_maps <- custom_antigenic_maps_func
+    }
+                          
     ## Error checks --------------------------------------
   if(!inherits(par_tab, "list")) {
     message(cat("List of par_tabs not given in parallel tempering sampler. Duplicating given table instead."))
@@ -48,8 +62,6 @@ run_MCMC_pt <- function(par_tab,
   }
   lapply(par_tab, function(x) check_par_tab(x, TRUE, 2))
   
-  abkinetics_model <- makeFuncPtr(titre_data_fast_individual_base)
-
   # Maybe check
   vaccination_hist_info <- get_vaccination_info(vaccination_histories)
   vaccination_histories_mat <- vaccination_hist_info[["vac_history_matrix"]]
@@ -148,7 +160,9 @@ run_MCMC_pt <- function(par_tab,
   } else {
     antigenic_map <- data.frame("x_coord"=1,"y_coord"=1,"inf_times"=strain_isolation_times)
   } # How many strains are we testing against and what time did they circulate
+
   n_indiv <- length(unique(titre_dat$individual)) # How many individuals in the titre_dat?
+  n_infs <- floor(length(antigenic_map$inf_times) * inf_propn)
 
   reset_par <- integer(param_length)
   reset_indiv <- integer(n_indiv)
@@ -226,6 +240,9 @@ run_MCMC_pt <- function(par_tab,
     mu_indices = mu_indices,
     n_alive = n_alive,
     function_type = 1,
+    custom_ab_kin_func = ab_kin_func,
+    custom_antigenic_maps_func = make_antigenic_maps,
+    custom_cal_other_pars = custom_cal_other_pars,
     ...
   ))
   if (!is.null(CREATE_PRIOR_FUNC)) {
@@ -245,6 +262,9 @@ run_MCMC_pt <- function(par_tab,
     mu_indices = mu_indices,
     n_alive = n_alive,
     function_type = 2,
+    custom_ab_kin_func = ab_kin_func,
+    custom_antigenic_maps_func = make_antigenic_maps,
+    custom_cal_other_pars = custom_cal_other_pars,
     ...
   ))
 

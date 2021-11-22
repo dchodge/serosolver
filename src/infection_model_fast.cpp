@@ -1,4 +1,5 @@
 #include <cmath>
+#include "../inst/include/serosolver.h"
 #include "wane_function.h"
 #include "boosting_functions_fast.h"
 #include "helpers.h"
@@ -27,7 +28,7 @@
 NumericVector titre_data_fast(NumericVector theta,
 			      const IntegerMatrix infection_history_mat,
             const List vaccination_hist_info,
-				    const Function abkinetics_model,
+				    const Function ab_kin_func,
 			      const NumericVector circulation_times,
 			      const IntegerVector circulation_times_indices,
 			      const NumericVector sample_times,
@@ -35,12 +36,32 @@ NumericVector titre_data_fast(NumericVector theta,
 			      const IntegerVector cum_nrows_per_individual_in_data, // How many rows in the titre data correspond to each individual?
 			      const IntegerVector nrows_per_blood_sample, // Split the sample times and runs for each individual
 			      const IntegerVector measurement_strain_indices, // For each titre measurement, corresponding entry in antigenic map
-			      const List antigenic_maps, // add in antigenic_map_long_vac ?
+			      const List antigenic_maps, 
 			      const NumericVector antigenic_distances,	// Currently not doing anything, but has uses for model extensions		      
-			      const NumericVector mus,
-			      const IntegerVector boosting_vec_indices,
+			      const List other_pars,
 			      bool boost_before_infection = false
 			      ){
+
+ //WORKS 
+ // auto abkinetics_model_2{ &abkinetics_model };
+// OR
+ // XPtr<funcPtr> p(new funcPtr(&abkinetics_model), true) ;
+ // funcPtr abkinetics_model_2 = *p;
+
+ //XPtr<funcPtr>(new funcPtr(&fun1_cpp)))
+
+ // Rcpp::Rcout << "new2" << std::endl;
+ // XPtr<funcPtr> xpfun(&titre_data_fast_individual_base);
+
+ // Rcpp::Rcout << "new3" << std::endl;
+  //funcPtr abkinetics_model_2 = *xpfun;
+  
+  //funcPtr abfuncptr = new func;
+  //auto abkinetics_model_pt = makeFuncPtr(abkinetics_model)
+  //func abkinetics_model_2 <- makeFuncPtr(titre_data_fast_individual_base);
+
+ // funcPtr abkinetics_model_ptr = new func;
+  //auto abkinetics_model_2 = *abkinetics_modelPtr;
 
   // Dimensions of structures
   int n = infection_history_mat.nrow();
@@ -81,9 +102,6 @@ NumericVector titre_data_fast(NumericVector theta,
   bool alternative_wane_func = false;
   bool titre_dependent_boosting = false;
   bool strain_dep_boost = false;
-  if (mus.size() > 1) {
-    strain_dep_boost = false;    
-  }
 
   double min_titre = 0;
   NumericVector predicted_titres(total_titres, min_titre);
@@ -150,55 +168,17 @@ NumericVector titre_data_fast(NumericVector theta,
       // ====================================================== //
       // Go to sub function - this is where we have options for different models
       // Note, these are in "boosting_functions.cpp"
-      if (base_function) {
-        //titre_data_fast_individual_base(
-           abkinetics_model(
-              predicted_titres, 
-              theta,
-              infection_info,
-              vaccination_info_i,
-              setup_dat, 
-              indexing,
-              antigenic_maps);
-      } else if (titre_dependent_boosting) {
-	          titre_data_fast_individual_titredep(
-              predicted_titres, 
-              theta, 
-					    infection_info,
-              vaccination_info_i,
-              setup_dat, 
-              indexing,
-					    antigenic_maps);	
-      } else if (strain_dep_boost) {
-            titre_data_fast_individual_strain_dependent(
-              predicted_titres, 
-              mus, boosting_vec_indices, 
-              theta,
-              infection_info,
-              vaccination_info_i,
-              setup_dat, 
-              indexing,
-              antigenic_maps);
-      } else if(alternative_wane_func) {
-            titre_data_fast_individual_wane2(
-              predicted_titres, 
-              theta,
-              infection_info,
-              vaccination_info_i,
-              setup_dat, 
-              indexing,
-              antigenic_maps);
-      } else {
-	        //titre_data_fast_individual_base(
-            abkinetics_model(
-              predicted_titres, 
-              theta,
-              infection_info,
-              vaccination_info_i,
-              setup_dat, 
-              indexing,
-              antigenic_maps);
-      }
+      
+      ab_kin_func(
+        predicted_titres, 
+        theta,
+        infection_info,
+        vaccination_info_i,
+        setup_dat, 
+        indexing,
+        antigenic_maps,
+        other_pars);
+     
     }
   }
   return(predicted_titres);

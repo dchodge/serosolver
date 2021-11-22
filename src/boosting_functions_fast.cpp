@@ -1,3 +1,4 @@
+#include "../inst/include/serosolver.h"
 #include "boosting_functions_fast.h"
 
 #ifndef MAX
@@ -21,7 +22,8 @@ void titre_data_fast_individual_base(
             const List &vaccination_info,
             const List &setup_data,
             const List &indexing,
-            const List &antigenic_maps
+            const List &antigenic_maps,
+            const List &other_pars
           ){
 
   int max_vaccinations;
@@ -76,8 +78,8 @@ void titre_data_fast_individual_base(
   
   NumericVector antigenic_map_long = antigenic_maps["long"];
   NumericVector antigenic_map_short = antigenic_maps["short"];
-  NumericVector antigenic_map_long_vac = antigenic_maps["long_vac"];
-  NumericVector antigenic_map_short_vac = antigenic_maps["short_vac"];
+ // NumericVector antigenic_map_long_vac = antigenic_maps["long_vac"];
+  //NumericVector antigenic_map_short_vac = antigenic_maps["short_vac"];
 
   NumericVector inf_vac_times;
   if (vac_flag) {
@@ -183,12 +185,14 @@ void titre_data_fast_individual_base(
   }
 }
 
+ // abfunc titre_data_fast_individual_base_ptr{ &titre_data_fast_individual_base };
 
 //' Alternative waning fast
 //' 
 //' A fast implementation of the alternative waning function, giving predicted titres for a number of samples for one individual. Note that this version attempts to minimise memory allocations.
 //' @family boosting_functions
 //' @seealso \code{\link{titre_data_fast}}
+// [[Rcpp::export]]
 void titre_data_fast_individual_wane2(
             NumericVector &predicted_titres,
             NumericVector &theta,
@@ -196,7 +200,8 @@ void titre_data_fast_individual_wane2(
             const List &vaccination_info,
             const List &setup_data,
 				    const List &indexing,
-            const List &antigenic_maps
+            const List &antigenic_maps,
+            const List &other_pars
 				  ){
 
 	bool boost_before_infection = false;
@@ -292,6 +297,7 @@ void titre_data_fast_individual_wane2(
 //' A fast implementation of the titre dependent boosting function, giving predicted titres for a number of samples for one individual. Note that this version attempts to minimise memory allocations.
 //' @family boosting_functions
 //' @seealso \code{\link{titre_data_fast}}
+// [[Rcpp::export]]
 void titre_data_fast_individual_titredep(
             NumericVector &predicted_titres,
             NumericVector &theta, 
@@ -299,7 +305,8 @@ void titre_data_fast_individual_titredep(
             const List &vaccination_info,
 				  	const List &setup_data,
 				    const List &indexing,
-            const List &antigenic_maps
+            const List &antigenic_maps,
+            const List &other_pars
 					 ){
 	bool boost_before_infection = false;
 
@@ -434,15 +441,16 @@ void titre_data_fast_individual_titredep(
 //' A fast implementation of the basic boosting function, giving predicted titres for a number of samples for one individual. Note that this version attempts to minimise memory allocations.
 //' @family boosting_functions
 //' @seealso \code{\link{titre_data_fast}}
-void titre_data_fast_individual_strain_dependent(NumericVector &predicted_titres,
-						 const NumericVector &mus,
-						 const IntegerVector &boosting_vec_indices,
-             NumericVector &theta,
+// [[Rcpp::export]]
+void titre_data_fast_individual_strain_dependent(
+            NumericVector &predicted_titres,
+            NumericVector &theta,
             const List &infection_info,
             const List &vaccination_info,
 						const List &setup_data,
 				    const List &indexing,
-            const List &antigenic_maps
+            const List &antigenic_maps,
+            const List &other_pars
 						 ){
 
   bool boost_before_infection = false;
@@ -461,6 +469,9 @@ void titre_data_fast_individual_strain_dependent(NumericVector &predicted_titres
   IntegerVector measurement_strain_indices = setup_data["measurement_strain_indices"];
   IntegerVector nrows_per_blood_sample = setup_data["nrows_per_blood_sample"];
   int number_strains = setup_data["number_strains"];
+
+	NumericVector mus = other_pars["mu"];
+  IntegerVector boosting_vec_indices = other_pars["boosting_vec_indices"];
 
   double sampling_time;
   double time;
@@ -526,7 +537,8 @@ void titre_data_fast_custom(
             const List &vaccination_info,
             const List &setup_data,
             const List &indexing,
-            const List &antigenic_maps
+            const List &antigenic_maps,
+            const List &other_pars
           ) 
 {
   ////////////////////////////////////

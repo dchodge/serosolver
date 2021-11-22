@@ -166,8 +166,8 @@ List inf_hist_prop_prior_v2_and_v4(
           NumericVector theta, // Model parameters
 				  const IntegerMatrix infection_history_mat,  // Current infection history
           List vaccination_hist_info,  // Current vaccination history
-                      const Function abkinetics_model,
-				  const NumericVector old_probs_1,
+           const Function ab_kin_func,
+				   const NumericVector old_probs_1,
 				   const IntegerVector sampled_indivs,
 				   const IntegerVector n_years_samp_vec,
 				   const IntegerVector age_mask, // Age mask
@@ -203,8 +203,7 @@ List inf_hist_prop_prior_v2_and_v4(
 				   IntegerMatrix overall_swap_proposals, //
 				   IntegerMatrix overall_add_proposals, //
 				   const NumericVector time_sample_probs, //
-				   const NumericVector mus,
-				   const IntegerVector boosting_vec_indices,
+				   const List other_pars,
 				   const IntegerVector total_alive,
 				   const double temp=1,
 				   bool solve_likelihood=true				   
@@ -322,9 +321,6 @@ List inf_hist_prop_prior_v2_and_v4(
   bool alternative_wane_func = false;
   bool titre_dependent_boosting = false;
   bool strain_dep_boost = false;
-  if (mus.size() > 1) {
-    strain_dep_boost = false;    
-  }
 
   
   // 4. Extra titre shifts
@@ -577,55 +573,15 @@ List inf_hist_prop_prior_v2_and_v4(
         // ====================================================== //
         // =============== CHOOSE MODEL TO SOLVE =============== //
         // ====================================================== //
-        if (base_function) {
-        //  titre_data_fast_individual_base(
-          abkinetics_model(
-                  predicted_titres, 
-                  theta,
-                  infection_info,
-                  vaccination_info_i,
-                  setup_dat,
-                  indexing, 
-                  antigenic_maps);	  
-        } else if (titre_dependent_boosting) {
-          titre_data_fast_individual_titredep(
-                      predicted_titres, 
-                      theta,
-                      infection_info,
-                      vaccination_info_i,
-                      setup_dat,
-                      indexing,
-                      antigenic_maps);	
-        } else if (strain_dep_boost) {
-          titre_data_fast_individual_strain_dependent(
-                        predicted_titres, 
-                        mus, boosting_vec_indices, 
-                        theta,
-                        infection_info,
-                        vaccination_info_i,
-                        setup_dat,
-                        indexing,
-                        antigenic_maps);
-        } else if(alternative_wane_func){
-          titre_data_fast_individual_wane2(
-                  predicted_titres, 
-                  theta,
-                  infection_info,
-                  vaccination_info_i,
-                  setup_dat,
-                  indexing,
-                  antigenic_maps);
-        } else {
-         // titre_data_fast_individual_base(
-         abkinetics_model(
-                  predicted_titres, 
-                  theta,
-                  infection_info,
-                  vaccination_info_i,
-                  setup_dat,
-                  indexing,
-                  antigenic_maps);
-        }
+        ab_kin_func(
+                predicted_titres, 
+                theta,
+                infection_info,
+                vaccination_info_i,
+                setup_dat,
+                indexing, 
+                antigenic_maps, 
+                other_pars);	  
 
         if(use_titre_shifts){
           add_measurement_shifts(predicted_titres, titre_shifts, 

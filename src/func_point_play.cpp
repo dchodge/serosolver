@@ -1,4 +1,7 @@
+#include "../inst/include/serosolver.h"
 #include <Rcpp.h>
+#include "boosting_functions_fast.h"
+
 using namespace Rcpp;
 
 // [[Rcpp::depends(RcppEigen)]]
@@ -11,14 +14,12 @@ void fun_cpp(int x) {
     x = x + 3;
 }
 /*
-// [[Rcpp::export]]
 void callViaXPtr(const int x, SEXP xpsexp) {
     XPtr<ab_kin_type> xpfun(xpsexp);
     ab_kin_type fun = *xpfun;
     fun(x);
 }
 
-// [[Rcpp::export]]
 XPtr<ab_kin_type> putFunPtrInXPtr(ab_kin_type func) {
     return(XPtr<ab_kin_type>(new funcPtr(&func)));
 }
@@ -56,14 +57,44 @@ void timesTwo(NumericVector x) {
    x = x * 2;
 }
 
+// your callback function
+void callback(){
+    Rprintf( "hello from callback\n" ) ;
+}
+
+// [[Rcpp::export]]
+Rcpp::XPtr<FunctionPointer> create_ptr(){
+    return Rcpp::XPtr<FunctionPointer>( new FunctionPointer(callback) );
+}
+
+// [[Rcpp::export]]
+void invokeCallback( XPtr<FunctionPointer> callback){
+    callback->ptr() ;
+}
+
+// [[Rcpp::export]]
+InternalFunction get_callback(){
+    return InternalFunction(titre_data_fast_individual_base);    
+}
+//titre_data_fast_individual_base
+
+
 // pointer to function defined
 //typedef NumericVector (*funcPtr) (NumericVector y);
 
-// [[Rcpp::export]]
-SEXP makeFuncPtr(SEXP xpsexp) {
-  auto fcnPtr { &xpsexp }; 
-  return *fcnPtr;
-}
+
+//SEXP makeFuncPtr(SEXP xpsexp) {
+ // auto fcnPtr { &xpsexp }; 
+ // return *fcnPtr;
+//}
+
+//XPtr<funcPtr> putFunPtrInXPtr(func ab_mod) {
+ // return(XPtr<funcPtr>(new funcPtr(&ab_mod)));
+//}
+
+///XPtr<funcPtr> makeFuncPtrX(SEXP xpsexp) {
+ //// return(XPtr<funcPtr>(new funcPtr(&xpsexp)));
+//}
 
 ///void evalPtr(const int x, SEXP funcPtr) {
    // funcPtr(x);
@@ -87,7 +118,6 @@ NumericVector call_by_xptr_struct(NumericVector y, void* user_data){
 
 // using xptr to evaluate function - this will be exported
 // from the package
-//[[Rcpp::export]]
 NumericVector xptr_call_struct(NumericVector y, SEXP xpsexp){
 
   struct xptr_data my_xptr = {NULL};
