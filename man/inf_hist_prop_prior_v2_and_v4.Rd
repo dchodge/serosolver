@@ -8,7 +8,7 @@ inf_hist_prop_prior_v2_and_v4(
   theta,
   infection_history_mat,
   vaccination_hist_info,
-  abkinetics_model,
+  ab_kin_func,
   old_probs_1,
   sampled_indivs,
   n_years_samp_vec,
@@ -45,8 +45,7 @@ inf_hist_prop_prior_v2_and_v4(
   overall_swap_proposals,
   overall_add_proposals,
   time_sample_probs,
-  mus,
-  boosting_vec_indices,
+  other_pars,
   total_alive,
   temp = 1,
   solve_likelihood = TRUE
@@ -119,10 +118,6 @@ inf_hist_prop_prior_v2_and_v4(
 
 \item{accepted_swap}{IntegerVector, vector with entry for each individual, storing the number of accepted infection history swaps}
 
-\item{mus}{NumericVector, if length is greater than one, assumes that strain-specific boosting is used rather than a single boosting parameter}
-
-\item{boosting_vec_indices}{IntegerVector, same length as circulation_times, giving the index in the vector \code{mus} that each entry should use as its boosting parameter.}
-
 \item{total_alive}{IntegerVector, giving the total number of potential infection events for each group. This only applies to prior version 4. If set to a vector of values -1, then this is ignored.}
 
 \item{temp}{double, temperature for parallel tempering MCMC}
@@ -132,6 +127,10 @@ inf_hist_prop_prior_v2_and_v4(
 \item{antigenic_map_long}{NumericVector, the collapsed cross reactivity map for long term boosting, after multiplying by sigma1, see \code{\link{create_cross_reactivity_vector}}}
 
 \item{antigenic_map_short}{NumericVector, the collapsed cross reactivity map for short term boosting, after multiplying by sigma2, see \code{\link{create_cross_reactivity_vector}}}
+
+\item{mus}{NumericVector, if length is greater than one, assumes that strain-specific boosting is used rather than a single boosting parameter}
+
+\item{boosting_vec_indices}{IntegerVector, same length as circulation_times, giving the index in the vector \code{mus} that each entry should use as its boosting parameter.}
 }
 \value{
 an R list with 6 entries: 1) the vector replacing old_probs_1, corresponding to the new likelihoods per individual; 2) the matrix of 1s and 0s corresponding to the new infection histories for all individuals; 3-6) the updated entries for proposal_iter, accepted_iter, proposal_swap and accepted_swap.

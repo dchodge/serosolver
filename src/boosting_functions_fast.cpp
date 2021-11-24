@@ -451,7 +451,7 @@ void titre_data_fast_individual_strain_dependent(
 				    const List &indexing,
             const List &antigenic_maps,
             const List &other_pars
-						 ){
+						){
 
   bool boost_before_infection = false;
 

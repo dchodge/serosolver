@@ -17,7 +17,10 @@ create_posterior_func(
   mu_indices = NULL,
   n_alive = NULL,
   function_type = 1,
+  custom_ab_kin_func = NULL,
   titre_before_infection = FALSE,
+  custom_antigenic_maps_func = NULL,
+  custom_cal_other_pars = NULL,
   ...
 )
 }

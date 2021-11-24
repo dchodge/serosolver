@@ -26,6 +26,9 @@ run_MCMC(
   solve_likelihood = TRUE,
   n_alive = NULL,
   continue_run = FALSE,
+  custom_ab_kin_func = NULL,
+  custom_antigenic_maps_func = NULL,
+  custom_cal_other_pars = NULL,
   ...
 )
 }
