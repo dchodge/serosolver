@@ -41,28 +41,6 @@ NumericVector titre_data_fast(NumericVector theta,
 			      const List other_pars,
 			      bool boost_before_infection = false
 			      ){
-
- //WORKS 
- // auto abkinetics_model_2{ &abkinetics_model };
-// OR
- // XPtr<funcPtr> p(new funcPtr(&abkinetics_model), true) ;
- // funcPtr abkinetics_model_2 = *p;
-
- //XPtr<funcPtr>(new funcPtr(&fun1_cpp)))
-
- // Rcpp::Rcout << "new2" << std::endl;
- // XPtr<funcPtr> xpfun(&titre_data_fast_individual_base);
-
- // Rcpp::Rcout << "new3" << std::endl;
-  //funcPtr abkinetics_model_2 = *xpfun;
-  
-  //funcPtr abfuncptr = new func;
-  //auto abkinetics_model_pt = makeFuncPtr(abkinetics_model)
-  //func abkinetics_model_2 <- makeFuncPtr(titre_data_fast_individual_base);
-
- // funcPtr abkinetics_model_ptr = new func;
-  //auto abkinetics_model_2 = *abkinetics_modelPtr;
-
   // Dimensions of structures
   int n = infection_history_mat.nrow();
   int number_strains = infection_history_mat.ncol();
@@ -84,13 +62,13 @@ NumericVector titre_data_fast(NumericVector theta,
   NumericVector vac_history_strains;
   NumericVector vac_history_strains_indices;
   bool vac_null_ind = false;
-  
+
   if (vaccination_hist_info["vac_history_matrix"] == R_NilValue) {
     vac_null_ind = true;
   } else {
-    NumericMatrix vac_history_matrix = vaccination_hist_info["vac_history_matrix"];
-    NumericVector vac_history_strains = vaccination_hist_info["vac_history_strains"];
-    NumericVector vac_history_strains_indices = vaccination_hist_info["vac_history_strains_indices"];
+    vac_history_matrix = as<NumericMatrix>(vaccination_hist_info["vac_history_matrix"]);
+    vac_history_strains = as<NumericVector>(vaccination_hist_info["vac_history_strains"]);
+    vac_history_strains_indices = as<NumericVector>(vaccination_hist_info["vac_history_strains_indices"]);
   }
 
   IntegerVector vaccination_history;
@@ -107,6 +85,7 @@ NumericVector titre_data_fast(NumericVector theta,
   NumericVector predicted_titres(total_titres, min_titre);
 
   // Create the Lists for cycling
+
   List setup_dat = List::create(
     _("measurement_strain_indices") = measurement_strain_indices, 
     _["sample_times"] = sample_times,
@@ -132,6 +111,7 @@ NumericVector titre_data_fast(NumericVector theta,
   );
 
   for (int i = 1; i <= n; ++i) {
+
     // Find infection times for individual i
     infection_history = infection_history_mat(i-1, _);
     indices = infection_history > 0;
@@ -168,7 +148,6 @@ NumericVector titre_data_fast(NumericVector theta,
       // ====================================================== //
       // Go to sub function - this is where we have options for different models
       // Note, these are in "boosting_functions.cpp"
-      
       ab_kin_func(
         predicted_titres, 
         theta,
@@ -178,7 +157,6 @@ NumericVector titre_data_fast(NumericVector theta,
         indexing,
         antigenic_maps,
         other_pars);
-     
     }
   }
   return(predicted_titres);

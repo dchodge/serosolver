@@ -223,6 +223,7 @@ setup_infection_histories <- function(titre_dat, strain_isolation_times, space =
 }
 
 get_vaccination_info <- function(vac_history) {
+
         if (!is.null(vac_history)) {
           vac_history_wide <- vac_history %>%
                   select(individual, virus, vac_flag) %>%

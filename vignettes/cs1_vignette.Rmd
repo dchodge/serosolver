@@ -169,7 +169,7 @@ system.time(
     
       ## Generate starting infection history
       start_inf <- setup_infection_histories_titre(titre_dat, strain_isolation_times, 
-                                                  space=3,titre_cutoff=4)
+                                                  space = 3,titre_cutoff = 4)
       start_prob <- sum(model_func(start_tab$values, start_inf)[[1]])
     }
 

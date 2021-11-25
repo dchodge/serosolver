@@ -465,7 +465,6 @@ create_posterior_func <- function(par_tab,
             theta <- pars[theta_indices]
             names(theta) <- par_names_theta
   
-
             if (use_strain_dependent) {
                 mus <- pars[mu_indices_par_tab]
             }
@@ -481,9 +480,9 @@ create_posterior_func <- function(par_tab,
                 strain_isolation_times,
                 infection_strain_indices,
                 sample_times,
-                rows_per_indiv_in_samples, 
+                rows_per_indiv_in_samples,
                 cum_nrows_per_individual_in_data,
-                nrows_per_blood_sample, 
+                nrows_per_blood_sample,
                 measured_strain_indices,
                 antigenic_maps,
                 antigenic_distances,
@@ -645,7 +644,7 @@ create_posterior_func <- function(par_tab,
             }
 
             antigenic_maps <- make_antigenic_maps(antigenic_map_melted, theta)
-
+            cat("Before titre_data_fast 2 \n")
             y_new <- titre_data_fast(
                 theta, infection_history_mat, vaccination_hist_info, ab_kin_func, strain_isolation_times, infection_strain_indices,
                 sample_times, rows_per_indiv_in_samples, cum_nrows_per_individual_in_data,

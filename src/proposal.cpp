@@ -257,9 +257,9 @@ List inf_hist_prop_prior_v2_and_v4(
   if (vaccination_hist_info["vac_history_matrix"] == R_NilValue) {
     vac_null_ind = true;
   } else {
-    NumericMatrix vac_history_matrix = vaccination_hist_info["vac_history_matrix"];
-    NumericVector vac_history_strains = vaccination_hist_info["vac_history_strains"];
-    NumericVector vac_history_strains_indices = vaccination_hist_info["vac_history_strains_indices"];
+    vac_history_matrix = as<NumericMatrix>(vaccination_hist_info["vac_history_matrix"]);
+    vac_history_strains = as<NumericVector>(vaccination_hist_info["vac_history_strains"]);
+    vac_history_strains_indices = as<NumericVector>(vaccination_hist_info["vac_history_strains_indices"]);
   }
  
   IntegerVector vaccination_history;
@@ -547,7 +547,6 @@ List inf_hist_prop_prior_v2_and_v4(
       ////////////////////////
       if(solve_likelihood && lik_changed)
       {
-       ///infection_history = new_infection_history_mat(indiv, _);
         indices = new_infection_history > 0;
         infection_times = circulation_times[indices];
 
@@ -598,7 +597,6 @@ List inf_hist_prop_prior_v2_and_v4(
         const double den = sd*M_SQRT2;
         const double log_const = log(0.5);
         const double max_titre = theta["MAX_TITRE"];
-       // Rcpp::Rcout << "predicted_titres B: " << predicted_titres << std::endl;
 	      proposal_likelihood_func(new_prob, predicted_titres, indiv, data, repeat_data, repeat_indices,
 				 cum_nrows_per_individual_in_data, cum_nrows_per_individual_in_repeat_data,
 				 log_const, den, max_titre, repeat_data_exist);
@@ -618,7 +616,6 @@ List inf_hist_prop_prior_v2_and_v4(
       }
       
       rand1 = R::runif(0, 1);
-   //   Rcpp::Rcout << "log_prob B: " << log_prob << std::endl;
 
       if(lik_changed && log(rand1) < log_prob / temp)
       {
@@ -668,6 +665,6 @@ List inf_hist_prop_prior_v2_and_v4(
   ret["accepted_swap"] = accepted_swap;
   ret["overall_swap_proposals"] = overall_swap_proposals;
   ret["overall_add_proposals"] = overall_add_proposals;
-  
+
   return(ret);
 }
