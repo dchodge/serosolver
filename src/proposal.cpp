@@ -557,7 +557,7 @@ List inf_hist_prop_prior_v2_and_v4(
 
         // Find vaccination history for individual i
         if (!vac_null_ind) {
-          vaccination_history = vac_history_matrix(i, _);
+          vaccination_history = vac_history_matrix(indiv, _);
           indices_vac = vaccination_history > 0;
           vaccination_times = vac_history_strains[indices_vac];
           vaccination_strain_indices_tmp = vac_history_strains_indices[indices_vac];
