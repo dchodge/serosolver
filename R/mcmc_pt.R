@@ -72,8 +72,8 @@ run_MCMC_pt <- function(par_tab,
     "adaptive_period" = 5000,
     "save_block" = 100, "thin_hist" = 10, "hist_sample_prob" = 1, "switch_sample" = 2, "burnin" = 0,
     "inf_propn" = 0.5, "move_size" = 5, "hist_opt" = 0, "swap_propn" = 0.5,
-    "hist_switch_prob" = 0, "year_swap_propn" = 1, "propose_from_prior"=TRUE,
-    "temperature" = seq(1, 10, by = 1), "parallel_tempering_iter" = 5
+    "hist_switch_prob" = 0, "year_swap_propn" = 1, "propose_from_prior" = TRUE,
+    "temperature" = seq(1, 10, by = 1), "parallel_tempering_iter" = 5, "min_temp_diff" = 0.1
   )
 
   mcmc_pars_used[names(mcmc_pars)] <- mcmc_pars
@@ -100,6 +100,8 @@ run_MCMC_pt <- function(par_tab,
   temperatures <- mcmc_pars_used[["temperature"]]
   parallel_tempering_iter <- mcmc_pars_used[["parallel_tempering_iter"]]
   propose_from_prior <- mcmc_pars_used[["propose_from_prior"]]
+  min_temp_diff <- mcmc_pars_used[["min_temp_diff"]]
+
   ###################################################################
   # check if temps are monotonically increasing
   if (any(diff(temperatures) <= 0)) {
@@ -425,13 +427,11 @@ run_MCMC_pt <- function(par_tab,
     )
   } else {
     # IMPORT PREVIOUS RUN
-    cat("mcmc_info_file: ", mcmc_info_file, "\n")
     load(file = mcmc_info_file)  # loads mcmc_info
     mcmc_list <- mcmc_info$mcmc_list
     temperatures <- mcmc_info$temperatures
 
     # PRE ALLOCATE MEMORY
-    cat("mcmc_list[[1]]$i: ", mcmc_list[[1]]$i, "\n")
     sampno <- mcmc_list[[1]]$i + 1
     i_prev <- mcmc_list[[1]]$i
     no_recorded <- 1
@@ -834,7 +834,7 @@ run_MCMC_pt <- function(par_tab,
 
           swap_ratio <- swaps / potential_swaps
           message(cat("Swap ratio: ", swap_ratio, sep = "\t"))
-          temperatures <- calibrate_temperatures(temperatures, swap_ratio)
+          temperatures <- calibrate_temperatures(temperatures, swap_ratio, min_temp_diff)
           message(cat("Temperatures: ", temperatures, sep = "\t"))
           mcmc_list <- Map(function(x, y) modifyList(x, list(temp = y)), mcmc_list, temperatures)
           swaps <- potential_swaps <- 0
@@ -1053,7 +1053,7 @@ parallel_tempering <- function(mcmc_list, temperatures, offset) {
 #' we alternate between swapping 1<->2, 3<->4.... and 2<->3, 4<->5...
 #' @return vector of length n: new temperatures of chains
 #'
-calibrate_temperatures <- function(temperatures, swap_ratio) {
+calibrate_temperatures <- function(temperatures, swap_ratio, min_temp_diff = 0.1) {
   diff_temp <- diff(temperatures)
   ## find chains between which the swap ratio is too large
   too_large <- swap_ratio > .2 # note factor of 2 from main text -- see above
@@ -1062,7 +1062,7 @@ calibrate_temperatures <- function(temperatures, swap_ratio) {
   ## adjust differences between temperatures accordingly
   diff_temp <- diff_temp * (too_large * 1.5 + too_small * .75 + (1 - too_large - too_small))
 
-  diff_temp[diff_temp < 0.1] <- 0.1
+  diff_temp[diff_temp < min_temp_diff] <- min_temp_diff
   ## reconstruct temperatures from their differences
   
   cat(cumsum(c(temperatures[1], diff_temp)))

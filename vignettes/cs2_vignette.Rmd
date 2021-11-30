@@ -815,7 +815,7 @@ foreach(x = filenames, .packages = c('serosolver', 'data.table', 'plyr')) %dopar
                                 "inf_propn"=1, "hist_sample_prob"=1,
                                 "hist_switch_prob"=0.8, "year_swap_propn"=1,
                                 "temperature" = seq(1, 10, 1),
-                                "parallel_tempering_iter" = 5),
+                                "parallel_tempering_iter" = 5, "min_temp_diff" = 0.1),
                   filename = paste0(chain_path_real_pt, x),
                   CREATE_POSTERIOR_FUNC = create_posterior_func,
                   version = prior_version, 

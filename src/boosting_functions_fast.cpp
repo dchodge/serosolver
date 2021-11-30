@@ -353,7 +353,7 @@ void titre_data_fast_individual_titredep(
   double tau = theta["tau"];
   double gradient = theta["gradient"];
   double boost_limit = theta["boost_limit"];
-  double titre_suppression = MAX(0,1.0 - gradient*boost_limit);
+  double titre_suppression = MAX(0, 1.0 - gradient*boost_limit);
 
 
   NumericVector monitored_titres(max_infections);
@@ -393,8 +393,8 @@ void titre_data_fast_individual_titredep(
             long_boost *= titre_suppression;
             short_boost *= titre_suppression;
           } else {
-            long_boost *= MAX(0,1.0 - gradient*monitored_titres[ii]);
-            short_boost *= MAX(0,1.0 - gradient*monitored_titres[ii]);	    
+            long_boost *= MAX(0, 1.0 - gradient*monitored_titres[ii]);
+            short_boost *= MAX(0, 1.0 - gradient*monitored_titres[ii]);	    
           }
           long_boost = MAX(0, long_boost);
           short_boost = MAX(0, short_boost);

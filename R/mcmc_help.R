@@ -226,7 +226,7 @@ get_vaccination_info <- function(vac_history) {
 
         if (!is.null(vac_history)) {
           vac_history_wide <- vac_history %>%
-                  select(individual, virus, vac_flag) %>%
+                  dplyr::select(individual, virus, vac_flag) %>%
                   unique %>%
                   pivot_wider(names_from = virus, values_from = vac_flag)
           vac_history_matrix <- vac_history_wide[, 2:ncol(vac_history_wide)] %>% as.matrix
