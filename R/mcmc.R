@@ -180,6 +180,9 @@ run_MCMC <- function(par_tab,
   if (!is.null(antigenic_map)) {
     strain_isolation_times <- unique(antigenic_map$inf_times) # How many strains are we testing against and what time did they circulate
   } else {
+    if (is.null(strain_isolation_times)) {
+      stop("Must provide either antigenic map, or strain_isolation_times variable to function")
+    }
     antigenic_map <- data.frame("x_coord"=1,"y_coord"=1,"inf_times"=strain_isolation_times)
   }
   n_indiv <- length(unique(titre_dat$individual)) # How many individuals in the titre_dat?
@@ -471,7 +474,7 @@ run_MCMC <- function(par_tab,
 
     ## Whether to swap entire year contents or not - only applies to gibbs sampling
     inf_swap_prob <- runif(1) 
-    if (i %% save_block == 0) message(cat("Current iteration: ", i, "\n", sep = "\t"))
+    if (i %% save_block == 0) cat("Current iteration: ", i, "\n", sep = "\t")
 
     theta_sample <- switch_sample_flag[switch_sample_i]
     switch_sample_i <- switch_sample_i + 1
@@ -489,9 +492,9 @@ run_MCMC <- function(par_tab,
           j <- unfixed_pars[par_i]
           par_i <- par_i + 1
           if (par_i > unfixed_par_length) par_i <- 1
+
           proposal <- univ_proposal(current_pars, lower_bounds, upper_bounds, steps, j)
-          #cat("current_pars: ", current_pars, "\n") # No evidence to suggest that this sampling wrong
-          #cat("proposal fresh: ", proposal, "\n")
+
           tempiter[j] <- tempiter[j] + 1
           ## If using multivariate proposals
         } else {
@@ -774,17 +777,21 @@ run_MCMC <- function(par_tab,
     ##############################
     ## If within adaptive period, need to do some adapting!
     if ((i + i_prev) > (adaptive_period + burnin + i_prev) & i %% opt_freq == 0) {
-      message(cat("Current posterior : ", total_posterior, "\n", sep = "\t"))
-      message(cat("Current likelihood : ", total_likelihood, "\n", sep = "\t"))
-      message(cat("Current prior : ", total_prior_prob, "\n", sep = "\t"))
+      cat("PARAMETER INFO \n")
+      cat("Current posterior : ", total_posterior, "\n", sep = "\t")
+      cat("Current likelihood : ", total_likelihood, "\n", sep = "\t")
+      cat("Current prior : ", total_prior_prob, "\n", sep = "\t")
+      cat("Current pars : ", current_pars[unfixed_pars], "\n", sep = "\t")
+      cat("No infections: ", sum(infection_histories), "\n", sep = "\t")
+      message(cat("----------------------------------------------- \n"))
 
       pcur <- tempaccepted / tempiter ## get current acceptance rate
-      message(cat("Pcur: ", signif(pcur, 3), "\n", sep = "\t"))
-      message(cat("Step sizes: ", signif(steps, 3), "\n", sep = "\t"))
-      message(cat("Group inf hist swap pcur: ",
-        signif(infection_history_swap_accept / infection_history_swap_n, 3),"\n", 
-        sep = "\t"
-      ))
+   #   message(cat("Pcur: ", signif(pcur, 3), "\n", sep = "\t"))
+   #   message(cat("Step sizes: ", signif(steps, 3), "\n", sep = "\t"))
+   ##   message(cat("Group inf hist swap pcur: ",
+   #     signif(infection_history_swap_accept / infection_history_swap_n, 3),"\n", 
+   #     sep = "\t"
+   #   ))
       infection_history_swap_accept <- infection_history_swap_n <- 0
       tempaccepted <- tempiter <- reset
       ## Have a look at the acceptance rates for infection histories
@@ -793,8 +800,8 @@ run_MCMC <- function(par_tab,
       pcur_hist_add <- histaccepted_add / histiter_add ## For adding
       pcur_hist_move <- histaccepted_move / histiter_move ## For adding
 
-      message(cat("Pcur hist add: ", head(signif(pcur_hist_add, 3)),"\n",  sep = "\t"))
-      message(cat("Pcur hist move: ", head(signif(pcur_hist_move, 3)), "\n", sep = "\t"))
+    #  message(cat("Pcur hist add: ", head(signif(pcur_hist_add, 3)),"\n",  sep = "\t"))
+    #  message(cat("Pcur hist move: ", head(signif(pcur_hist_move, 3)), "\n", sep = "\t"))
 
       ##histadd_overall <- histadd_overall + histiter_add
       ##histmove_overall <- histmove_overall + histiter_move
@@ -809,8 +816,8 @@ run_MCMC <- function(par_tab,
 
     if ((i + i_prev) > (burnin + i_prev) & (i + i_prev) <= (adaptive_period + burnin + i_prev)) {
       ## Current acceptance rate
-     #  cat("tempaccepted for iteration: ", i, ": ", tempaccepted, "\n")
-     #  cat("tempiter for iteration: ", i, ": ", tempiter, "\n")
+      #  cat("tempaccepted for iteration: ", i, ": ", tempaccepted, "\n")
+      #  cat("tempiter for iteration: ", i, ": ", tempiter, "\n")
 
       pcur <- tempaccepted / tempiter
       ## Save each step
@@ -877,19 +884,21 @@ run_MCMC <- function(par_tab,
         #    cat("move_sizes VERY AFTER: ", move_sizes, "\n")
         }
 
-      ## Look at infection history proposal sizes
-        message(cat("Current posterior : ", total_posterior, "\n", sep = "\t"))
-        message(cat("Current likelihood : ", total_likelihood, "\n", sep = "\t"))
-        message(cat("Current prior : ", total_prior_prob, "\n", sep = "\t"))
-       # names(current_pars) <- par_names
-        message(cat("Current pars : ", current_pars[unfixed_pars], "\n", sep = "\t"))
+       ## Look at infection history proposal sizes
+      cat("PARAMETER INFO \n")
+      cat("Current posterior : ", total_posterior, "\n", sep = "\t")
+      cat("Current likelihood : ", total_likelihood, "\n", sep = "\t")
+      cat("Current prior : ", total_prior_prob, "\n", sep = "\t")
+      cat("Current pars : ", current_pars[unfixed_pars], "\n", sep = "\t")
+      cat("No infections: ", sum(infection_histories), "\n", sep = "\t")
+      message(cat("----------------------------------------------- \n"))
 
-      #  message(cat("Pcur hist add: ", head(signif(pcur_hist_add, 3)), "\n", sep = "\t"))
-        message(cat("No. infections sampled: ", head(n_infs_vec), "\n", sep = "\t"))
-      #  message(cat("Pcur hist move: ", head(signif(pcur_hist_move, 3)), "\n", sep = "\t"))
-        message(cat("Move sizes: ", head(move_sizes), "\n", sep = "\t"))
-        message(cat("Pcur theta: ", signif(pcur, 3), "\n", sep = "\t"))
-        message(cat("Step sizes: ", signif(steps, 3), "\n", sep = "\t"))
+       #  message(cat("Pcur hist add: ", head(signif(pcur_hist_add, 3)), "\n", sep = "\t"))
+       #    message(cat("No. infections sampled: ", head(n_infs_vec), "\n", sep = "\t"))
+       #  message(cat("Pcur hist move: ", head(signif(pcur_hist_move, 3)), "\n", sep = "\t"))
+       #    message(cat("Move sizes: ", head(move_sizes), "\n", sep = "\t"))
+       ##    message(cat("Pcur theta: ", signif(pcur, 3), "\n", sep = "\t"))
+       #   message(cat("Step sizes: ", signif(steps, 3), "\n", sep = "\t"))
        # message(cat("Pcur group inf hist swap: ", signif(pcur_hist_swap, 3), "\n", sep = "\t"))
        # message(cat("Group inf hist swap propn: ", year_swap_propn, "\n", sep = "\t"))
         pcur_hist <- histaccepted / histiter ## Overall
@@ -905,8 +914,6 @@ run_MCMC <- function(par_tab,
     ## HOUSEKEEPING
     #######################
     if (no_recorded == save_block) {
-      cat("mcmc_chain_file: ", mcmc_chain_file)
-
         data.table::fwrite(as.data.frame(save_chain[1:(no_recorded - 1), ]),
                             file = mcmc_chain_file,
                             col.names = FALSE, row.names = FALSE, sep = ",", append = TRUE

@@ -123,12 +123,12 @@ void titre_data_fast_individual_base(
 
 
   for(int j = index_in_samples; j <= end_index_in_samples; ++j){
-    //   Rcpp::Rcout << "In here and j is: " << j << std::endl;
     sampling_time = sample_times[j];
     n_inf = 0.0;
     n_vac = 0.0;
     x_inf = 0.0;
     x_vac = 0.0;
+
     // Find number of titres in the predicted_titres vector that correspond to this sample
     n_titres = nrows_per_blood_sample[j];
     // Only iterate through indices for this sample
@@ -151,7 +151,6 @@ void titre_data_fast_individual_base(
             seniority = MAX(0, 1.0 - tau*(n_inf + n_vac - 1.0)); // Antigenic seniority
             
             inf_map_index = infection_strain_indices_tmp[x_inf]; // Index of this infecting strain in antigenic map
-      //      Rcpp::Rcout << "n_titres: " << n_titres  << std::endl;
             for(int k = 0; k < n_titres; ++k){
               index = measurement_strain_indices[tmp_titre_index + k]*number_strains + inf_map_index;
               predicted_titres[tmp_titre_index + k] += seniority *

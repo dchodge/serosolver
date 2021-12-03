@@ -76,6 +76,9 @@ get_titre_predictions <- function(chain, infection_histories, titre_dat,
     if (!is.null(antigenic_map)) {
         strain_isolation_times <- unique(antigenic_map$inf_times) # How many strains are we testing against and what time did they circulate
     } else {
+        if (is.null(strain_isolation_times)) {
+            stop("Must provide either antigenic map, or strain_isolation_times variable to function")
+        }
         antigenic_map <- data.frame("x_coord"=1,"y_coord"=1,"inf_times"=strain_isolation_times)
     }
     nstrain <- length(strain_isolation_times)

@@ -160,6 +160,9 @@ run_MCMC_pt <- function(par_tab,
   if (!is.null(antigenic_map)) {
     strain_isolation_times <- unique(antigenic_map$inf_times) # How many strains are we testing against and what time did they circulate
   } else {
+    if (is.null(strain_isolation_times)) {
+      stop("Must provide either antigenic map, or strain_isolation_times variable to function")
+    }
     antigenic_map <- data.frame("x_coord"=1,"y_coord"=1,"inf_times"=strain_isolation_times)
   } # How many strains are we testing against and what time did they circulate
 
@@ -450,7 +453,7 @@ run_MCMC_pt <- function(par_tab,
   ## Main body of running MCMC
   for (i in (i_prev + 1):(iterations + adaptive_period + burnin + i_prev)) 
   {
-        if (i %% save_block == 0) message(cat("Current iteration: ", i, "\n", sep = "\t"))
+        if (i %% save_block == 0) cat("Current iteration: ", i, "\n", sep = "\t")
         for (jh in 1:length(mcmc_list)) mcmc_list[[jh]][["i"]] <- i
         for (k in 1:length(mcmc_list)) {
           ############################################
@@ -802,6 +805,12 @@ run_MCMC_pt <- function(par_tab,
         ##############################
         ## If within adaptive period, need to do some adapting!
         if ((i + i_prev) > (adaptive_period + burnin + i_prev) & (i %% opt_freq) == 0) {
+          cat("PARAMETER INFO \n")
+          cat("Current posterior : ", total_posterior, "\n", sep = "\t")
+          cat("Current likelihood : ", total_likelihood, "\n", sep = "\t")
+          cat("Current prior : ", total_prior_prob, "\n", sep = "\t")
+          cat("Current pars : ", current_pars[unfixed_pars], "\n", sep = "\t")
+
           # Update step sizes
           steps_list <- lapply(mcmc_list, function(x) x[["steps"]])
           steps_list_updated <- Map(function(x, y) scale_univariate(x, popt, y, unfixed_pars), steps_list, pcur)
@@ -824,23 +833,21 @@ run_MCMC_pt <- function(par_tab,
           infection_histories <- mcmc_list[[1]][["infection_histories"]]
 
           # Print info during sampling
-          message(cat("No infections: ", sum(infection_histories), "\n", sep = "\t"))
-          message(cat("Pcur: ", signif(pcur[[1]][unfixed_pars], 3), "\n", sep = "\t"))
-          message(cat("Step sizes: ", signif(steps_list_updated[[1]][unfixed_pars], 3), "\n", sep = "\t"))
-          message(cat("Group inf hist swap pcur: ",
-              signif(pcur_hist_swap, 3),"\n", 
-              sep = "\t"
-          ))
+          cat("No infections: ", sum(infection_histories), "\n", sep = "\t")
+        #  message(cat("Pcur: ", signif(pcur[[1]][unfixed_pars], 3), "\n", sep = "\t"))
+       #   message(cat("Step sizes: ", signif(steps_list_updated[[1]][unfixed_pars], 3), "\n", sep = "\t"))
+        #  message(cat("Group inf hist swap pcur: ", signif(pcur_hist_swap, 3),"\n", sep = "\t"))
 
           swap_ratio <- swaps / potential_swaps
-          message(cat("Swap ratio: ", swap_ratio, sep = "\t"))
           temperatures <- calibrate_temperatures(temperatures, swap_ratio, min_temp_diff)
-          message(cat("Temperatures: ", temperatures, sep = "\t"))
+          cat("TEMPERATURE INFO \n")
+          cat("Temperatures: ", temperatures, "\n", sep = "\t")
+          message(cat("----------------------------------------------- \n"))
           mcmc_list <- Map(function(x, y) modifyList(x, list(temp = y)), mcmc_list, temperatures)
           swaps <- potential_swaps <- 0
 
-          message(cat("Pcur hist add: ", head(signif(pcur_hist_add, 3)),"\n",  sep = "\t"))
-          message(cat("Pcur hist move: ", head(signif(pcur_hist_move, 3)), "\n", sep = "\t"))
+      #    message(cat("Pcur hist add: ", head(signif(pcur_hist_add, 3)),"\n",  sep = "\t"))
+       #   message(cat("Pcur hist move: ", head(signif(pcur_hist_move, 3)), "\n", sep = "\t"))
 
           # Reset variables    
           mcmc_list <- lapply(mcmc_list, function(x) reset_acceptance(x, reset_par))
@@ -851,6 +858,11 @@ run_MCMC_pt <- function(par_tab,
           opt_chain[chain_index, ] <- mcmc_list[[1]][["current_pars"]][unfixed_pars]
           if (chain_index %% opt_freq == 0) 
           {
+            cat("PARAMETER INFO \n")
+            cat("Current posterior : ", total_posterior, "\n", sep = "\t")
+            cat("Current likelihood : ", total_likelihood, "\n", sep = "\t")
+            cat("Current prior : ", total_prior_prob, "\n", sep = "\t")
+            cat("Current pars : ", current_pars[unfixed_pars], "\n", sep = "\t")
             # Update step sizes
             steps_list <- lapply(mcmc_list, function(x) x[["steps"]])
             steps_list_updated <- Map(function(x, y) scale_univariate(x, popt, y, unfixed_pars), steps_list, pcur)
@@ -906,16 +918,23 @@ run_MCMC_pt <- function(par_tab,
             # Print info during sampling
             infection_histories <- mcmc_list[[1]][["infection_histories"]]
             ## Look at infection history proposal sizes
-            message(cat("No infections: ", sum(infection_histories), "\n", sep = "\t"))
-            message(cat("Pcur hist add: ", head(signif(pcur_hist_add, 3)), "\n", sep = "\t"))
-            message(cat("No. infections sampled: ", head(n_infs_vec), "\n", sep = "\t"))
-            message(cat("Pcur hist move: ", head(signif(pcur_hist_move, 3)), "\n", sep = "\t"))
-            message(cat("Move sizes: ", head(move_sizes), "\n", sep = "\t"))
-            message(cat("Pcur theta: ", signif(pcur[[1]][unfixed_pars], 3), "\n", sep = "\t"))
-            message(cat("Step sizes: ", signif(steps_list_updated[[1]][unfixed_pars], 3), "\n", sep = "\t"))
-            message(cat("Pcur group inf hist swap: ", signif(pcur_hist_swap, 3), "\n", sep = "\t"))
-            message(cat("Group inf hist swap propn: ", year_swap_propn, "\n", sep = "\t"))
+            cat("No infections: ", sum(infection_histories), "\n", sep = "\t")
+          #  message(cat("Pcur hist add: ", head(signif(pcur_hist_add, 3)), "\n", sep = "\t"))
+          #  message(cat("No. infections sampled: ", head(n_infs_vec), "\n", sep = "\t"))
+          #  message(cat("Pcur hist move: ", head(signif(pcur_hist_move, 3)), "\n", sep = "\t"))
+          #  message(cat("Move sizes: ", head(move_sizes), "\n", sep = "\t"))
+          #  message(cat("Pcur theta: ", signif(pcur[[1]][unfixed_pars], 3), "\n", sep = "\t"))
+           # message(cat("Step sizes: ", signif(steps_list_updated[[1]][unfixed_pars], 3), "\n", sep = "\t"))
+         #   message(cat("Pcur group inf hist swap: ", signif(pcur_hist_swap, 3), "\n", sep = "\t"))
+         #   message(cat("Group inf hist swap propn: ", year_swap_propn, "\n", sep = "\t"))
             ## If not accepting, send a warning
+            cat("TEMPERATURE INFO \n")
+            swap_ratio <- swaps / potential_swaps
+            temperatures <- calibrate_temperatures(temperatures, swap_ratio, min_temp_diff)
+            cat("Temperatures: ", temperatures, "\n", sep = "\t")
+            message(cat("----------------------------------------------- \n"))
+            mcmc_list <- Map(function(x, y) modifyList(x, list(temp = y)), mcmc_list, temperatures)
+            swaps <- potential_swaps <- 0
             if (all(pcur[[1]][unfixed_pars][!is.nan(pcur[[1]][unfixed_pars])] == 0)) {
                 message("Warning: acceptance rates are 0. Might be an error with the theta proposal?\n")
             }
@@ -1064,7 +1083,5 @@ calibrate_temperatures <- function(temperatures, swap_ratio, min_temp_diff = 0.1
 
   diff_temp[diff_temp < min_temp_diff] <- min_temp_diff
   ## reconstruct temperatures from their differences
-  
-  cat(cumsum(c(temperatures[1], diff_temp)))
   cumsum(c(temperatures[1], diff_temp))
 }
