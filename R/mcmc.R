@@ -816,9 +816,6 @@ run_MCMC <- function(par_tab,
 
     if ((i + i_prev) > (burnin + i_prev) & (i + i_prev) <= (adaptive_period + burnin + i_prev)) {
       ## Current acceptance rate
-      #  cat("tempaccepted for iteration: ", i, ": ", tempaccepted, "\n")
-      #  cat("tempiter for iteration: ", i, ": ", tempiter, "\n")
-
       pcur <- tempaccepted / tempiter
       ## Save each step
       opt_chain[chain_index, ] <- current_pars[unfixed_pars]
@@ -859,29 +856,23 @@ run_MCMC <- function(par_tab,
             ## Increase or decrease the number of infection history locations
             ## being changed to modify acceptance rate. If not accepting enough,
             ### reduce number. If accepting too many, increase number
-           # cat("n_infs_vec BEFORE: ", n_infs_vec, "\n")
             n_infs_vec[which(pcur_hist_add < popt_hist * (1 - OPT_TUNING))] <-
                 n_infs_vec[which(pcur_hist_add < popt_hist * (1 - OPT_TUNING))] - 1
             n_infs_vec[which(pcur_hist_add >= popt_hist * (1 + OPT_TUNING))] <-
                 n_infs_vec[which(pcur_hist_add >= popt_hist * (1 + OPT_TUNING))] + 1
             n_infs_vec[n_infs_vec < 1] <- 1
-         #   cat("n_infs_vec AFTER: ", n_infs_vec, "\n")
-         #   cat("move_sizes BEFORE: ", move_sizes, "\n")
 
             move_sizes[which(pcur_hist_move < popt_hist * (1 - OPT_TUNING))] <-
                 move_sizes[which(pcur_hist_move < popt_hist * (1 - OPT_TUNING))] - 1
             move_sizes[which(pcur_hist_move >= popt_hist * (1 + OPT_TUNING))] <-
                 move_sizes[which(pcur_hist_move >= popt_hist * (1 + OPT_TUNING))] + 1
            move_sizes[move_sizes < 1] <- 1
-        #  cat("move_sizes AFTER: ", move_sizes, "\n")
 
             for (ii in seq_along(n_infs_vec)) {
                 move_sizes[ii] <- min(move_sizes[ii], length(age_mask[ii]:strain_mask[ii]))
                 move_sizes[ii] <- min(move_sizes[ii], 10)
                 n_infs_vec[ii] <- min(n_infs_vec[ii], length(age_mask[ii]:strain_mask[ii]))
             }
-        #    cat("n_infs_vec VERY AFTER: ", n_infs_vec, "\n")
-        #    cat("move_sizes VERY AFTER: ", move_sizes, "\n")
         }
 
        ## Look at infection history proposal sizes

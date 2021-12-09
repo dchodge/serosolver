@@ -104,9 +104,13 @@ get_titre_predictions <- function(chain, infection_histories, titre_dat,
             c("individual", "samples", "virus", "titre", "run", "group", "DOB")
         ]
     }
-    model_func <- create_posterior_func(par_tab, titre_dat1, antigenic_map, 100,
-                                        mu_indices = mu_indices,version=2,
-                                        measurement_indices_by_time = measurement_indices_by_time, function_type = 4,
+    model_func <- create_posterior_func(par_tab = par_tab,
+                                        titre_dat = titre_dat1,
+                                        antigenic_map = antigenic_map,
+                                        mu_indices = mu_indices,
+                                        version = 2,
+                                        measurement_indices_by_time = measurement_indices_by_time, 
+                                        function_type = 4,
                                         titre_before_infection=titre_before_infection
                                         )
 

@@ -73,7 +73,7 @@ run_MCMC_pt <- function(par_tab,
     "save_block" = 100, "thin_hist" = 10, "hist_sample_prob" = 1, "switch_sample" = 2, "burnin" = 0,
     "inf_propn" = 0.5, "move_size" = 5, "hist_opt" = 0, "swap_propn" = 0.5,
     "hist_switch_prob" = 0, "year_swap_propn" = 1, "propose_from_prior" = TRUE,
-    "temperature" = seq(1, 10, by = 1), "parallel_tempering_iter" = 5, "min_temp_diff" = 0.1
+    "temperature" = seq(1, 10, by = 1), "parallel_tempering_iter" = 5, "min_temp_diff" = 0.1, "pt_burnin" = 10000
   )
 
   mcmc_pars_used[names(mcmc_pars)] <- mcmc_pars
@@ -101,6 +101,7 @@ run_MCMC_pt <- function(par_tab,
   parallel_tempering_iter <- mcmc_pars_used[["parallel_tempering_iter"]]
   propose_from_prior <- mcmc_pars_used[["propose_from_prior"]]
   min_temp_diff <- mcmc_pars_used[["min_temp_diff"]]
+  pt_burnin <- mcmc_pars_used[["pt_burnin"]]
 
   ###################################################################
   # check if temps are monotonically increasing
@@ -454,8 +455,17 @@ run_MCMC_pt <- function(par_tab,
   for (i in (i_prev + 1):(iterations + adaptive_period + burnin + i_prev)) 
   {
         if (i %% save_block == 0) cat("Current iteration: ", i, "\n", sep = "\t")
-        for (jh in 1:length(mcmc_list)) mcmc_list[[jh]][["i"]] <- i
-        for (k in 1:length(mcmc_list)) {
+        if (i == (burnin + i_prev)) {
+          mcmc_list <- parallel_tempering_find_min(mcmc_list)
+        }
+        if ((i >= (burnin + i_prev))) {
+          L <- 1
+        } else {
+          L <- length(mcmc_list)
+        }
+
+        for (jh in 1:L) mcmc_list[[jh]][["i"]] <- i
+        for (k in 1:L) {
           ############################################
           ############################################
           ############################################
@@ -734,15 +744,14 @@ run_MCMC_pt <- function(par_tab,
         }
           ##############
 
-
         ## perform parallel tempering
-        if (i %% parallel_tempering_iter == 0) {
+        if ((i < (burnin + i_prev)) && (i %% parallel_tempering_iter == 0)) {
             parallel_tempering_list <- parallel_tempering(mcmc_list, temperatures, offset)
             mcmc_list <- parallel_tempering_list$mcmc_list
             swaps <- swaps + parallel_tempering_list$swaps
             potential_swaps <- potential_swaps + 1
             offset <- 1 - offset
-          }
+        }
           ##############################
           ## SAVE STEP
           ##############################
@@ -806,15 +815,15 @@ run_MCMC_pt <- function(par_tab,
         ## If within adaptive period, need to do some adapting!
         if ((i + i_prev) > (adaptive_period + burnin + i_prev) & (i %% opt_freq) == 0) {
           cat("PARAMETER INFO \n")
-          cat("Current posterior : ", total_posterior, "\n", sep = "\t")
+          cat("Current posterior : ", posterior, "\n", sep = "\t")
           cat("Current likelihood : ", total_likelihood, "\n", sep = "\t")
           cat("Current prior : ", total_prior_prob, "\n", sep = "\t")
           cat("Current pars : ", current_pars[unfixed_pars], "\n", sep = "\t")
 
           # Update step sizes
-          steps_list <- lapply(mcmc_list, function(x) x[["steps"]])
-          steps_list_updated <- Map(function(x, y) scale_univariate(x, popt, y, unfixed_pars), steps_list, pcur)
-          mcmc_list <- Map(function(x, y) modifyList(x, list(steps = y)), mcmc_list, steps_list_updated)
+          #steps_list <- lapply(mcmc_list, function(x) x[["steps"]])
+          #steps_list_updated <- Map(function(x, y) scale_univariate(x, popt, y, unfixed_pars), steps_list, pcur)
+          #mcmc_list <- Map(function(x, y) modifyList(x, list(steps = y)), mcmc_list, steps_list_updated)
 
           # Get coldest chain info
           infection_history_swap_accept <- mcmc_list[[1]]$infection_history_swap_accept
@@ -859,11 +868,12 @@ run_MCMC_pt <- function(par_tab,
           if (chain_index %% opt_freq == 0) 
           {
             cat("PARAMETER INFO \n")
-            cat("Current posterior : ", total_posterior, "\n", sep = "\t")
+            cat("Current posterior : ", posterior, "\n", sep = "\t")
             cat("Current likelihood : ", total_likelihood, "\n", sep = "\t")
             cat("Current prior : ", total_prior_prob, "\n", sep = "\t")
             cat("Current pars : ", current_pars[unfixed_pars], "\n", sep = "\t")
-            # Update step sizes
+            
+            # Adaptive section for step sizes
             steps_list <- lapply(mcmc_list, function(x) x[["steps"]])
             steps_list_updated <- Map(function(x, y) scale_univariate(x, popt, y, unfixed_pars), steps_list, pcur)
             mcmc_list <- Map(function(x, y) modifyList(x, list(steps = y)), mcmc_list, steps_list_updated)
@@ -993,6 +1003,22 @@ run_MCMC_pt <- function(par_tab,
   )
 }
 
+#' Find chain with minimum posterior values
+#'
+#' @export
+parallel_tempering_find_min <- function(mcmc_list) {
+  all_posterior <- vapply(mcmc_list, function(x) x$total_posterior, double(1))
+  smallest_pos <- which.max(all_posterior)
+  if (smallest_pos == 1) {
+    return(mcmc_list)
+  } else {
+    mcmc_list[[1]] <- mcmc_list[[smallest_pos]]
+    mcmc_list[[1]][["temp"]] <- 1
+    return(mcmc_list)
+  }
+}
+
+
 
 #' performs parallel tempering - Ada Yan
 #'
@@ -1006,8 +1032,7 @@ run_MCMC_pt <- function(par_tab,
 parallel_tempering <- function(mcmc_list, temperatures, offset) {
   recorded_swaps <- double(length(mcmc_list) - 1)
 
-  ## extract current probabilities and log likelihoods
-
+  ## extract current probabilities and log likelihood
   all_likelihood <- vapply(mcmc_list, function(x) x$total_likelihood, double(1))
   all_prior_prob <- vapply(mcmc_list, function(x) x$total_prior_prob, double(1))
   all_posterior <- vapply(mcmc_list, function(x) x$total_posterior, double(1))
@@ -1085,3 +1110,5 @@ calibrate_temperatures <- function(temperatures, swap_ratio, min_temp_diff = 0.1
   ## reconstruct temperatures from their differences
   cumsum(c(temperatures[1], diff_temp))
 }
+
+

@@ -644,7 +644,6 @@ create_posterior_func <- function(par_tab,
             }
 
             antigenic_maps <- make_antigenic_maps(antigenic_map_melted, theta)
-            cat("Before titre_data_fast 2 \n")
             y_new <- titre_data_fast(
                 theta, infection_history_mat, vaccination_hist_info, ab_kin_func, strain_isolation_times, infection_strain_indices,
                 sample_times, rows_per_indiv_in_samples, cum_nrows_per_individual_in_data,

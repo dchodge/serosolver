@@ -62,6 +62,11 @@ if(Sys.info()[["sysname"]]=="Darwin" | Sys.info()[["sysname"]]=="Linux"){
   registerDoParallel(cl)
 }
 
+example_par_tab <- example_par_tab[example_par_tab$names != "phi",]
+y <- get_titre_predictions(example_theta_chain, example_inf_chain, example_titre_dat,
+                           unique(example_titre_dat$individual), example_antigenic_map,
+                           par_tab = example_par_tab, expand_titredat = FALSE)
+
 ```
 
 ## Assumptions
