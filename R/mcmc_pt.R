@@ -134,6 +134,7 @@ run_MCMC_pt <- function(par_tab,
   message(cat(prop_print, "\n"))
 
   mcmc_chain_file <- paste0(filename, "_chain.csv")
+  mcmc_chain_file_indiv <- paste0(filename, "_indiv_ll.csv")
   infection_history_file <- paste0(filename, "_infection_histories.csv")
   mcmc_info_file <- paste0(filename, "_run_info.RData")
   check_data(titre_dat)
@@ -413,6 +414,7 @@ run_MCMC_pt <- function(par_tab,
     opt_chain <- matrix(nrow = burnin + adaptive_period, ncol = unfixed_par_length)
     ## Create empty chain to store "save_block" iterations at a time
     save_chain <- empty_save_chain <- matrix(nrow = save_block, ncol = param_length + 4)
+    save_chain_indiv_ll <- empty_save_chain_indiv_ll <- matrix(nrow = save_block, ncol = length(indiv_likelihoods))
 
     ## Store posterior (called lnlike), likelihood ad prior
     chain_colnames <- c("sampno", par_names, "lnlike", "likelihood", "prior_prob")
@@ -425,10 +427,19 @@ run_MCMC_pt <- function(par_tab,
       file = mcmc_chain_file,
       row.names = FALSE, col.names = TRUE, sep = ",", append = FALSE
     )
-    
+
+     ## Set up initial csv file to store indiv_posteriors
+    tmp_table_post <- array(dim = c(1, length(indiv_likelihoods)))
+    tmp_table_post <- as.data.frame(tmp_table_post)
+    tmp_table_post[1, ] <- indiv_likelihoods
+    data.table::fwrite(as.data.frame(tmp_table_post),
+      file = mcmc_chain_file_indiv,
+      row.names = FALSE, col.names = FALSE, sep = ",", append = FALSE
+    )
     save_infection_history_to_disk(infection_histories, infection_history_file, 1,
       append = FALSE, col_names = TRUE
     )
+
   } else {
     # IMPORT PREVIOUS RUN
     load(file = mcmc_info_file)  # loads mcmc_info
@@ -445,6 +456,7 @@ run_MCMC_pt <- function(par_tab,
     opt_chain <- matrix(nrow = burnin + adaptive_period, ncol = unfixed_par_length)
     ## Create empty chain to store "save_block" iterations at a time
     save_chain <- empty_save_chain <- matrix(nrow = save_block, ncol = param_length + 4)
+    save_chain_indiv_ll <- empty_save_chain_indiv_ll <- matrix(nrow = save_block, ncol = , ncol = length(mcmc_list[[1]]$indiv_likelihoods))
   }
 
   # Parallel tempering stuff
@@ -783,6 +795,7 @@ run_MCMC_pt <- function(par_tab,
         if (i %% thin == 0) {
             # use coldest chain
           current_pars <- mcmc_list[[1]][["current_pars"]]
+          indiv_likelihoods <- mcmc_list[[1]][["indiv_likelihoods"]]
           total_likelihood <- mcmc_list[[1]][["total_likelihood"]]
           total_prior_prob <- mcmc_list[[1]][["total_prior_prob"]]
           posterior <- mcmc_list[[1]][["total_posterior"]]
@@ -791,6 +804,7 @@ run_MCMC_pt <- function(par_tab,
           save_chain[no_recorded, ncol(save_chain) - 2] <- posterior
           save_chain[no_recorded, ncol(save_chain) - 1] <- total_likelihood
           save_chain[no_recorded, ncol(save_chain)] <- total_prior_prob
+          save_chain_indiv_ll[no_recorded, ] <- indiv_likelihoods
           no_recorded <- no_recorded + 1
         }
         ## Save infection histories
@@ -968,12 +982,17 @@ run_MCMC_pt <- function(par_tab,
         #######################
 
         if (no_recorded == save_block) {
-        data.table::fwrite(as.data.frame(save_chain[1:(no_recorded - 1), ]),
-            file = mcmc_chain_file,
-            col.names = FALSE, row.names = FALSE, sep = ",", append = TRUE
-        )
-        save_chain <- empty_save_chain
-        no_recorded <- 1
+          data.table::fwrite(as.data.frame(save_chain[1:(no_recorded - 1), ]),
+              file = mcmc_chain_file,
+              col.names = FALSE, row.names = FALSE, sep = ",", append = TRUE
+          )
+          save_chain <- empty_save_chain
+          data.table::fwrite(as.data.frame(save_chain_indiv_ll[1:(no_recorded - 1), ]),
+                      file = mcmc_chain_file_indiv,
+                      col.names = FALSE, row.names = FALSE, sep = ",", append = TRUE
+                      )
+          save_chain_indiv_ll <- empty_save_chain_indiv_ll
+          no_recorded <- 1
         }
         sampno <- sampno + 1
   }
@@ -984,6 +1003,10 @@ run_MCMC_pt <- function(par_tab,
       data.table::fwrite(as.data.frame(save_chain[1:(no_recorded - 1), ]),
                       file = mcmc_chain_file, row.names = FALSE,
                       col.names = FALSE, sep = ",", append = TRUE)
+      data.table::fwrite(as.data.frame(save_chain_indiv_ll[1:(no_recorded - 1), ]),
+                    file = mcmc_chain_file_indiv, row.names = FALSE, col.names = FALSE,
+                    sep = ",", append = TRUE
+                    )
   }
   p_accept <- mcmc_list[[1]][["tempaccepted"]] / mcmc_list[[1]][["tempiter"]]
   p_accept <- p_accept[unfixed_pars]
