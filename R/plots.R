@@ -51,14 +51,20 @@ generate_quantiles <- function(x, sig_f = 3, qs = c(0.025, 0.5, 0.975), as_text 
 #'                           example_par_tab,expand_titredat = FALSE)
 #' }
 #' @export
-get_titre_predictions <- function(chain, infection_histories, titre_dat,
+get_titre_predictions <- function(chain, 
+                                  infection_histories,
+                                  vaccination_histories = NULL, 
+                                  titre_dat,
                                   individuals, antigenic_map=NULL,
                                   strain_isolation_times=NULL, par_tab,
                                   nsamp = 100, add_residuals = FALSE,
                                   mu_indices = NULL,
                                   measurement_indices_by_time = NULL,
                                   for_res_plot = FALSE, expand_titredat = FALSE,
-                                  titre_before_infection=FALSE, titres_for_regression=FALSE){
+                                  titre_before_infection = FALSE, titres_for_regression = FALSE,
+                                  custom_ab_kin_func = NULL,
+                                  custom_antigenic_maps_func=NULL
+                                  ){
     ## Need to align the iterations of the two MCMC chains
     ## and choose some random samples
     samps <- intersect(unique(infection_histories$sampno), unique(chain$sampno))
@@ -67,10 +73,15 @@ get_titre_predictions <- function(chain, infection_histories, titre_dat,
 
     ## Take subset of individuals
     titre_dat <- titre_dat[titre_dat$individual %in% individuals, ]
+
     infection_histories <- infection_histories[infection_histories$i %in% individuals, ]
+    if (!is.null(vaccination_histories)) {
+        vaccination_histories <- vaccination_histories[vaccination_histories$individual %in% individuals, ]
+    }
 
     titre_dat$individual <- match(titre_dat$individual, individuals)
     infection_histories$i <- match(infection_histories$i, individuals)
+    vaccination_histories$individual <- match(vaccination_histories$individual, individuals)
 
     ## Format the antigenic map to solve the model 
     if (!is.null(antigenic_map)) {
@@ -86,7 +97,8 @@ get_titre_predictions <- function(chain, infection_histories, titre_dat,
 
     ## Empty data structures to save output to
     infection_history_dens <- NULL
-    tmp_samp <- sample(samps, nsamp)
+    #tmp_samp <- sample(samps, nsamp)
+    tmp_samp <- samps[1:nsamp]
     
     ## See the function in posteriors.R
     titre_dat1 <- titre_dat
@@ -104,15 +116,19 @@ get_titre_predictions <- function(chain, infection_histories, titre_dat,
             c("individual", "samples", "virus", "titre", "run", "group", "DOB")
         ]
     }
+
     model_func <- create_posterior_func(par_tab = par_tab,
                                         titre_dat = titre_dat1,
+                                        vaccination_histories = vaccination_histories,
                                         antigenic_map = antigenic_map,
                                         mu_indices = mu_indices,
                                         version = 2,
                                         measurement_indices_by_time = measurement_indices_by_time, 
                                         function_type = 4,
-                                        titre_before_infection=titre_before_infection
-                                        )
+                                        titre_before_infection = titre_before_infection,
+                                        custom_ab_kin_func = custom_ab_kin_func,
+                                        custom_antigenic_maps_func = custom_antigenic_maps_func
+                                    )
 
     predicted_titres <- residuals <- residuals_floor <- 
         observed_predicted_titres <- matrix(nrow = nrow(titre_dat1), ncol = nsamp)
@@ -229,20 +245,31 @@ get_titre_predictions <- function(chain, infection_histories, titre_dat,
 #'                                            1:10, example_antigenic_map, example_par_tab)
 #' }
 #' @export
-plot_infection_histories_long <- function(chain, infection_histories, titre_dat,
+plot_infection_histories_long <- function(chain, infection_histories, 
+                                    vaccination_histories=NULL, titre_dat,
                                      individuals, antigenic_map=NULL, 
                                      strain_isolation_times=NULL, par_tab,
                                      nsamp = 100,
                                      mu_indices = NULL,
-                                     measurement_indices_by_time = NULL) {
+                                     measurement_indices_by_time = NULL,
+                                     custom_ab_kin_func = NULL,
+                                     custom_antigenic_maps_func=NULL) {
     individuals <- individuals[order(individuals)]
     ## Generate titre predictions
     titre_preds <- get_titre_predictions(
-        chain, infection_histories, titre_dat, individuals,
-        antigenic_map, strain_isolation_times, 
-        par_tab, nsamp, FALSE, mu_indices,
-        measurement_indices_by_time,
-        expand_titredat=TRUE
+        chain = chain,
+        infection_histories = infection_histories,
+        vaccination_histories = vaccination_histories, 
+        titre_dat = titre_dat,
+        individuals = individuals, antigenic_map = antigenic_map,
+        strain_isolation_times = strain_isolation_times, par_tab = par_tab,
+        nsamp = 100,
+        mu_indices = mu_indices,
+        measurement_indices_by_time = measurement_indices_by_time,
+        for_res_plot = FALSE, expand_titredat = TRUE,
+        titre_before_infection=FALSE, titres_for_regression = FALSE,
+        custom_ab_kin_func = custom_ab_kin_func,
+        custom_antigenic_maps_func =  custom_antigenic_maps_func 
     )
     
     ## Use these titre predictions and summary statistics on infection histories
