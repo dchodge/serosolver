@@ -411,7 +411,6 @@ List inf_hist_prop_prior_v2_and_v4(
     }
 
     locs = RcppArmadillo::sample(samps_B, n_samp_max, FALSE, tmp_loc_sample_probs_normal);
-
     for(int j = 0; j < n_samp_max; ++j) 
     {
       lik_changed = false;
@@ -422,34 +421,42 @@ List inf_hist_prop_prior_v2_and_v4(
       ///////////////////////////////////////////////////////
       // If swap step
       prior_old = prior_new = 0;
-    //  Rcpp::Rcout << "swap_step_option B: " << swap_step_option <<  std::endl;
 
       if(swap_step_option){
-     //   Rcpp::Rcout << "in swap: " <<  std::endl;
         loc1 = locs[j]; // Choose a location from age_mask to strain_mask
-        loc2 = loc1 + floor(R::runif(-swap_distance,swap_distance+1));
-
+        loc2 = loc1 + floor(R::runif(-swap_distance, swap_distance + 1));
         if(loc2 < 0) loc2 = -loc2;
         if(loc2 >= n_samp_length) loc2 = n_samp_length - loc2 + n_samp_length - 2;
 
-        // Get onto right scale (starting at age mask)
-        loc1 += age_mask[indiv] - 1;
-        loc2 += age_mask[indiv] - 1;
+        bool ind_valid_swap = false;
+        for (int k = 0; k <  samps_B.size(); k ++) {
+          if(loc2 == samps_B[k]) {
+            ind_valid_swap = true;
+            break;
+          }
+        }
 
-        loc1_val_old = new_infection_history(loc1);
-        loc2_val_old = new_infection_history(loc2);
+        // if loc2 is not in samps_B[k], then don't do anything
+        if (ind_valid_swap) {        
 
-        overall_swap_proposals(indiv, loc1)++;
-        overall_swap_proposals(indiv, loc2)++;
+          // Get onto right scale (starting at age mask)
+          loc1 += age_mask[indiv] - 1;
+          loc2 += age_mask[indiv] - 1;
 
-        // Only proceed if we've actually made a change
-        // If prior version 4, then prior doesn't change by swapping
-        if(loc1_val_old != loc2_val_old)
-        {
-          lik_changed = true;
-          proposal_swap[indiv] += 1;
-          if(!prior_on_total){
-            // Number of infections in that group in that time
+          loc1_val_old = new_infection_history(loc1);
+          loc2_val_old = new_infection_history(loc2);
+
+          overall_swap_proposals(indiv, loc1)++;
+          overall_swap_proposals(indiv, loc2)++;
+
+          // Only proceed if we've actually made a change
+          // If prior version 4, then prior doesn't change by swapping
+          if(loc1_val_old != loc2_val_old)
+          {
+            lik_changed = true;
+            proposal_swap[indiv] += 1;
+            if(!prior_on_total){
+              // Number of infections in that group in that time
               m_1_old = n_infections(group_id, loc1);      
               m_2_old = n_infections(group_id, loc2);
 
@@ -469,20 +476,21 @@ List inf_hist_prop_prior_v2_and_v4(
               prior_new = prior_1_new + prior_2_new;
 
             } else {
-              // Prior version 4
-              prior_old = prior_new = 0;
+                // Prior version 4
+                prior_old = prior_new = 0;
             }
           }
+        }
         ///////////////////////////////////////////////////////
         // OPTION 2: Add/remove infection
         ///////////////////////////////////////////////////////
       } else {
-      //  Rcpp::Rcout << "in add: " << std::endl;
+        //  Rcpp::Rcout << "in add: " << std::endl;
 
         year = locs[j] + age_mask[indiv] - 1;
         old_entry = new_infection_history(year);
         overall_add_proposals(indiv, year)++;
-     //   Rcpp::Rcout << "number_infec i: " << sum(new_infection_history) << std::endl;
+        //   Rcpp::Rcout << "number_infec i: " << sum(new_infection_history) << std::endl;
 
         if(!prior_on_total){	
           // Get number of individuals that were alive and/or infected in that year,
@@ -494,11 +502,11 @@ List inf_hist_prop_prior_v2_and_v4(
           m = n_infected_group(group_id) - old_entry;
           n = total_alive(group_id) - 1;
         }
+  
+         // Rcpp::Rcout << " n_infections(group_id, year): " <<  n_infections(group_id, year) << std::endl;
 
-      // Rcpp::Rcout << " n_infections(group_id, year): " <<  n_infections(group_id, year) << std::endl;
-
-      //  Rcpp::Rcout << "m: " << m << std::endl;
-     //   Rcpp::Rcout << "n: " << n << std::endl;
+        //  Rcpp::Rcout << "m: " << m << std::endl;
+        //   Rcpp::Rcout << "n: " << n << std::endl;
 
 
         if(propose_from_prior){
