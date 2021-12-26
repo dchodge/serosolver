@@ -225,10 +225,20 @@ setup_infection_histories <- function(titre_dat, strain_isolation_times, space =
 get_vaccination_info <- function(vac_history) {
 
         if (!is.null(vac_history)) {
+          virus_v <- vac_history %>% pull(virus) %>% unique
+          if (sum(!(virus_v %in% strain_isolation_times)) != 0) {
+            stop("Error, strains in vacciantion history do not match with strains in strain_isolation_times.")
+          }
+
+          individuals_id <- vaccination_histories %>% pull(individual) %>% unique 
           vac_history_wide <- vac_history %>%
-                  dplyr::select(individual, virus, vac_flag) %>%
-                  unique %>%
-                  pivot_wider(names_from = virus, values_from = vac_flag)
+              complete(
+                nesting(virus = strain_isolation_times, time = strain_isolation_times), 
+                individual = individuals_id,
+                fill = list(vac_flag = 0, prev_vac = 0)) %>%
+              dplyr::select(individual, virus, vac_flag) %>%
+              unique %>%
+              pivot_wider(names_from = virus, values_from = vac_flag)
           vac_history_matrix <- vac_history_wide[, 2:ncol(vac_history_wide)] %>% as.matrix
           vac_history_strains <- as.numeric(colnames(vac_history_matrix))
           vac_history_strains_indices <- 1:length(vac_history_strains) - 1

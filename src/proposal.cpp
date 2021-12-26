@@ -401,8 +401,6 @@ List inf_hist_prop_prior_v2_and_v4(
     }
 
     samps_shifted_B = Rcpp::setdiff(samps_shifted_A, samps_vec); /// remove possibility of having an infection the same yr as vac
-   // Rcpp::Rcout << "samps_shifted_A: " << samps_shifted_A << std::endl;
-   // Rcpp::Rcout << "samps_shifted_B: " << samps_shifted_B << std::endl;
 
     samps_B = samps_shifted_B - (age_mask[indiv] - 1);
     tmp_loc_sample_probs = time_sample_probs[samps_shifted_B];
@@ -411,6 +409,7 @@ List inf_hist_prop_prior_v2_and_v4(
     if (n_samp_max > samps_B.size()) { 
       n_samp_max = samps_B.size() - 1;
     }
+
     locs = RcppArmadillo::sample(samps_B, n_samp_max, FALSE, tmp_loc_sample_probs_normal);
 
     for(int j = 0; j < n_samp_max; ++j) 
@@ -440,8 +439,8 @@ List inf_hist_prop_prior_v2_and_v4(
         loc1_val_old = new_infection_history(loc1);
         loc2_val_old = new_infection_history(loc2);
 
-        overall_swap_proposals(indiv,loc1)++;
-        overall_swap_proposals(indiv,loc2)++;
+        overall_swap_proposals(indiv, loc1)++;
+        overall_swap_proposals(indiv, loc2)++;
 
         // Only proceed if we've actually made a change
         // If prior version 4, then prior doesn't change by swapping
