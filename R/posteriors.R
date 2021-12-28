@@ -337,7 +337,7 @@ create_posterior_func <- function(par_tab,
       antigenic_map <- data.frame("x_coord"=1,"y_coord"=1,"inf_times"=strain_isolation_times)
     }
 
-    vaccination_hist_info <- get_vaccination_info(vaccination_histories)
+    vaccination_hist_info <- get_vaccination_info(vaccination_histories, strain_isolation_times)
 
     ## Seperate out initial readings and repeat readings - we only
     ## want to solve the model once for each unique indiv/sample/virus year tested

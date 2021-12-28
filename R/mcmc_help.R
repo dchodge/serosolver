@@ -222,7 +222,7 @@ setup_infection_histories <- function(titre_dat, strain_isolation_times, space =
   return(start_inf)
 }
 
-get_vaccination_info <- function(vac_history) {
+get_vaccination_info <- function(vac_history, strain_isolation_times) {
 
         if (!is.null(vac_history)) {
           virus_v <- vac_history %>% pull(virus) %>% unique
@@ -230,7 +230,7 @@ get_vaccination_info <- function(vac_history) {
             stop("Error, strains in vacciantion history do not match with strains in strain_isolation_times.")
           }
 
-          individuals_id <- vaccination_histories %>% pull(individual) %>% unique 
+          individuals_id <- vac_history %>% pull(individual) %>% unique 
           vac_history_wide <- vac_history %>%
               complete(
                 nesting(virus = strain_isolation_times, time = strain_isolation_times), 

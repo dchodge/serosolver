@@ -98,9 +98,6 @@ run_MCMC <- function(par_tab,
       par_tab <- base::rbind(par_tab, list("vac_flag", 0, 1, 0.1, 0, 1,  0, 1, 0))
   }
 
-  # Maybe check
-  vaccination_hist_info <- get_vaccination_info(vaccination_histories)
-  vaccination_histories_mat <- vaccination_hist_info[["vac_history_matrix"]]
   ## Sort out MCMC parameters --------------------------------------
   ###################################################################
     mcmc_pars_used <- list(
@@ -186,6 +183,9 @@ run_MCMC <- function(par_tab,
     }
     antigenic_map <- data.frame("x_coord"=1,"y_coord"=1,"inf_times"=strain_isolation_times)
   }
+    # Maybe check
+  vaccination_hist_info <- get_vaccination_info(vaccination_histories, strain_isolation_times)
+  vaccination_histories_mat <- vaccination_hist_info[["vac_history_matrix"]]
   n_indiv <- length(unique(titre_dat$individual)) # How many individuals in the titre_dat?
   n_infs <- floor(length(antigenic_map$inf_times) * inf_propn)
 
