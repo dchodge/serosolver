@@ -211,6 +211,10 @@ get_titre_predictions <- function(chain,
 
     dat2$individual <- individuals[dat2$individual]
     infection_history_final$individual <- individuals[infection_history_final$individual]
+
+    infection_history_final <- infection_history_final %>%
+        complete(individual, variable = strain_isolation_times, fill = list(value = 0))
+
     if(titres_for_regression){
         return(list("all_predictions"=predicted_titres, "all_inf_hist"=inf_hist_all,
                     "summary_titres"=dat2,"best_inf_hist"=best_inf, "predicted_observations"=obs_dat)) 
@@ -267,7 +271,7 @@ plot_infection_histories_long <- function(chain, infection_histories,
         mu_indices = mu_indices,
         measurement_indices_by_time = measurement_indices_by_time,
         for_res_plot = FALSE, expand_titredat = TRUE,
-        titre_before_infection=FALSE, titres_for_regression = FALSE,
+        titre_before_infection = FALSE, titres_for_regression = FALSE,
         custom_ab_kin_func = custom_ab_kin_func,
         custom_antigenic_maps_func =  custom_antigenic_maps_func 
     )
@@ -277,6 +281,11 @@ plot_infection_histories_long <- function(chain, infection_histories,
     model_preds <- titre_preds$predictions
     to_use$individual <- individuals[to_use$individual]
     
+   to_use <- left_join(
+        to_use,
+        select(titre_dat, individual, DOB)
+    )
+
     inf_hist_densities <- titre_preds$histories
     inf_hist_densities$xmin <- inf_hist_densities$variable-0.5
     inf_hist_densities$xmax <- inf_hist_densities$variable+0.5
@@ -287,6 +296,7 @@ plot_infection_histories_long <- function(chain, infection_histories,
     max_x <- max(inf_hist_densities$variable) + 5
     time_range <- range(inf_hist_densities$variable)
     titre_pred_p <- ggplot(to_use) +
+        geom_vline(aes(xintercept = DOB), color = "gray40", size = 3) +
         geom_rect(data=inf_hist_densities,
                   aes(xmin=xmin,xmax=xmax,fill=value),ymin=min_titre-1,ymax=max_titre+2)+
         geom_ribbon(aes(x=virus,ymin=lower, ymax=upper),alpha=0.4, fill="#009E73",size=0.2)+
