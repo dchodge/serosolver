@@ -97,8 +97,7 @@ get_titre_predictions <- function(chain,
 
     ## Empty data structures to save output to
     infection_history_dens <- NULL
-    #tmp_samp <- sample(samps, nsamp)
-    tmp_samp <- samps[1:nsamp]
+    tmp_samp <- sample(samps, nsamp)
     
     ## See the function in posteriors.R
     titre_dat1 <- titre_dat

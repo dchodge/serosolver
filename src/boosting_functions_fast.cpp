@@ -354,7 +354,6 @@ void titre_data_fast_individual_titredep(
   double boost_limit = theta["boost_limit"];
   double titre_suppression = MAX(0, 1.0 - gradient*boost_limit);
 
-
   NumericVector monitored_titres(max_infections);
 
   // For each sample this individual has
