@@ -4,7 +4,7 @@
 \alias{calibrate_temperatures}
 \title{calibrate temperatures for parallel chains - Ada Yan}
 \usage{
-calibrate_temperatures(temperatures, swap_ratio)
+calibrate_temperatures(temperatures, swap_ratio, min_temp_diff = 0.1)
 }
 \arguments{
 \item{temperatures}{vector of length n: current temperatures of chains}

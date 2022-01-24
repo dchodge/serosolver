@@ -256,7 +256,8 @@ plot_infection_histories_long <- function(chain, infection_histories,
                                      mu_indices = NULL,
                                      measurement_indices_by_time = NULL,
                                      custom_ab_kin_func = NULL,
-                                     custom_antigenic_maps_func=NULL) {
+                                     custom_antigenic_maps_func=NULL,
+                                     size_plot = 0.5) {
     individuals <- individuals[order(individuals)]
     ## Generate titre predictions
     titre_preds <- get_titre_predictions(
@@ -286,8 +287,8 @@ plot_infection_histories_long <- function(chain, infection_histories,
     )
 
     inf_hist_densities <- titre_preds$histories
-    inf_hist_densities$xmin <- inf_hist_densities$variable-0.5
-    inf_hist_densities$xmax <- inf_hist_densities$variable+0.5
+    inf_hist_densities$xmin <- inf_hist_densities$variable - size_plot
+    inf_hist_densities$xmax <- inf_hist_densities$variable + size_plot
     
     max_titre <- max(titre_dat$titre)
     min_titre <- min(titre_dat$titre)
@@ -299,7 +300,7 @@ plot_infection_histories_long <- function(chain, infection_histories,
         geom_rect(data=inf_hist_densities,
                   aes(xmin=xmin,xmax=xmax,fill=value),ymin=min_titre-1,ymax=max_titre+2)+
         geom_ribbon(aes(x=virus,ymin=lower, ymax=upper),alpha=0.4, fill="#009E73",size=0.2)+
-        geom_ribbon(data=model_preds[model_preds$individual %in% individuals,], 
+        geom_ribbon(data=model_preds[model_preds$individual %in% individuals,],
                     aes(x=virus,ymin=lower,ymax=upper),alpha=0.7,fill="#009E73",size=0.2) + 
         geom_line(data=model_preds, aes(x=virus, y=median),linetype="dotted",color="grey10")+
         geom_rect(ymin=max_titre,ymax=max_titre+2,xmin=0,xmax=max_x,fill="grey70")+

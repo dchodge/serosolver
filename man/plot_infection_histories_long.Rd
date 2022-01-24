@@ -7,6 +7,7 @@
 plot_infection_histories_long(
   chain,
   infection_histories,
+  vaccination_histories = NULL,
   titre_dat,
   individuals,
   antigenic_map = NULL,
@@ -14,7 +15,10 @@ plot_infection_histories_long(
   par_tab,
   nsamp = 100,
   mu_indices = NULL,
-  measurement_indices_by_time = NULL
+  measurement_indices_by_time = NULL,
+  custom_ab_kin_func = NULL,
+  custom_antigenic_maps_func = NULL,
+  size_plot = 0.5
 )
 }
 \arguments{

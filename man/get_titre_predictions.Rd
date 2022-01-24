@@ -7,6 +7,7 @@
 get_titre_predictions(
   chain,
   infection_histories,
+  vaccination_histories = NULL,
   titre_dat,
   individuals,
   antigenic_map = NULL,
@@ -19,7 +20,9 @@ get_titre_predictions(
   for_res_plot = FALSE,
   expand_titredat = FALSE,
   titre_before_infection = FALSE,
-  titres_for_regression = FALSE
+  titres_for_regression = FALSE,
+  custom_ab_kin_func = NULL,
+  custom_antigenic_maps_func = NULL
 )
 }
 \arguments{
