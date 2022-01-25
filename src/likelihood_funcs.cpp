@@ -194,8 +194,6 @@ void proposal_likelihood_func(double &new_prob,
     }
   }
 
-  
-
   // Need to erase the predicted titre data...
   for(int x = cum_nrows_per_individual_in_data[indiv]; x < cum_nrows_per_individual_in_data[indiv+1]; ++x){
     predicted_titres[x] = 0;

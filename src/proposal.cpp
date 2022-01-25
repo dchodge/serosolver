@@ -604,6 +604,7 @@ List inf_hist_prop_prior_v2_and_v4(
         const double den = sd*M_SQRT2;
         const double log_const = log(0.5);
         const double max_titre = theta["MAX_TITRE"];
+
 	      proposal_likelihood_func(new_prob, predicted_titres, indiv, data, repeat_data, repeat_indices,
 				 cum_nrows_per_individual_in_data, cum_nrows_per_individual_in_repeat_data,
 				 log_const, den, max_titre, repeat_data_exist);

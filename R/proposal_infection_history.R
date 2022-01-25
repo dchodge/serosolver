@@ -52,7 +52,7 @@ inf_hist_swap <- function(infection_history, vaccination_histories_mat, age_mask
     if (is.null(vaccination_histories_mat)) {
       vac_times <- NULL
     } else {
-      vac_times <- union(which(vaccination_histories_mat[y1, ] > 0), which(vaccination_histories_mat[y2, ] > 0))
+      vac_times <- union(which(vaccination_histories_mat[, y1] > 0), which(vaccination_histories_mat[, y2] > 0))
     }
     alive_indivs <- setdiff(alive_indivs, vac_times)
     samp_indivs <- sample(alive_indivs, floor(length(alive_indivs) * swap_propn))
