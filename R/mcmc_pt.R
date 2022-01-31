@@ -466,14 +466,14 @@ run_MCMC_pt <- function(par_tab,
   for (i in (i_prev + 1):(iterations + adaptive_period + burnin + i_prev)) 
   {
         if (i %% save_block == 0) cat("Current iteration: ", i, "\n", sep = "\t")
-        if (i == (burnin + i_prev)) {
-          mcmc_list <- parallel_tempering_find_min(mcmc_list)
-        }
-        if ((i >= (burnin + i_prev))) {
-          L <- 1
-        } else {
-          L <- length(mcmc_list)
-        }
+     #   if (i == (burnin + i_prev)) {
+     #     mcmc_list <- parallel_tempering_find_min(mcmc_list)
+     #   }
+     #   if ((i >= (burnin + i_prev))) {
+     #     L <- 1
+     #   } else {
+        L <- length(mcmc_list)
+      #  }
 
         for (jh in 1:L) mcmc_list[[jh]][["i"]] <- i
         for (k in 1:L) {
@@ -765,7 +765,8 @@ run_MCMC_pt <- function(par_tab,
         }
 
         ## perform parallel tempering
-        if ((i < (burnin + i_prev)) && (i %% parallel_tempering_iter == 0)) {
+        #if ((i < (burnin + i_prev)) && (i %% parallel_tempering_iter == 0)) {
+        if (i %% parallel_tempering_iter == 0) {
             parallel_tempering_list <- parallel_tempering(mcmc_list, temperatures, offset)
             mcmc_list <- parallel_tempering_list$mcmc_list
             swaps <- swaps + parallel_tempering_list$swaps
