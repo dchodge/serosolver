@@ -848,8 +848,8 @@ run_MCMC_pt <- function(par_tab,
 
           # Update step sizes
           steps_list <- lapply(mcmc_list, function(x) x[["steps"]])
-          steps_list_updated <- Map(function(x, y) scale_univariate(x, popt, y, unfixed_pars), steps_list[1], pcur[1])
-          mcmc_list <- Map(function(x, y) modifyList(x, list(steps = y)), mcmc_list[1], steps_list_updated[1])
+          steps_list_updated <- Map(function(x, y) scale_univariate(x, popt, y, unfixed_pars), steps_list, pcur)
+          mcmc_list <- Map(function(x, y) modifyList(x, list(steps = y)), mcmc_list, steps_list_updated)
 
           # Get coldest chain info
           infection_history_swap_accept <- mcmc_list[[1]]$infection_history_swap_accept
@@ -876,7 +876,7 @@ run_MCMC_pt <- function(par_tab,
       #    swap_ratio <- swaps / potential_swaps
       #    temperatures <- calibrate_temperatures(temperatures, swap_ratio, min_temp_diff)
 
-          mcmc_list <- Map(function(x, y) modifyList(x, list(temp = y)), mcmc_list[1], temperatures[1])
+          mcmc_list <- Map(function(x, y) modifyList(x, list(temp = y)), mcmc_list, temperatures)
       #    message(cat("Pcur hist add: ", head(signif(pcur_hist_add, 3)),"\n",  sep = "\t"))
        #   message(cat("Pcur hist move: ", head(signif(pcur_hist_move, 3)), "\n", sep = "\t"))
 
@@ -898,8 +898,8 @@ run_MCMC_pt <- function(par_tab,
             
             # Adaptive section for step sizes
             steps_list <- lapply(mcmc_list, function(x) x[["steps"]])
-            steps_list_updated <- Map(function(x, y) scale_univariate(x, popt, y, unfixed_pars), steps_list[1], pcur[1])
-            mcmc_list <- Map(function(x, y) modifyList(x, list(steps = y)), mcmc_list[1], steps_list_updated[1])
+            steps_list_updated <- Map(function(x, y) scale_univariate(x, popt, y, unfixed_pars), steps_list, pcur)
+            mcmc_list <- Map(function(x, y) modifyList(x, list(steps = y)), mcmc_list, steps_list_updated)
 
             # Get coldest chain info
             histaccepted <- mcmc_list[[1]]$histaccepted
