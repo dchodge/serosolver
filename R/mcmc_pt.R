@@ -924,8 +924,7 @@ run_MCMC_pt <- function(par_tab,
               ## * Increase or decrease the number of infection history locations
               ## being changed to modify acceptance rate. If not accepting enough,
               ## reduce number. If accepting too many, increase number
-              #for (k in 1:length(mcmc_list)) {
-                k <- 1
+              for (k in 1:length(mcmc_list)) {
                 mcmc_list_k <- mcmc_list[[k]]
                 move_sizes <- mcmc_list_k$move_sizes
                 n_infs_vec <- mcmc_list_k$n_infs_vec
@@ -948,7 +947,7 @@ run_MCMC_pt <- function(par_tab,
                 }
                 mcmc_list[[k]]$move_sizes <- move_sizes
                 mcmc_list[[k]]$n_infs_vec <- n_infs_vec
-            #  }
+              }
             }
 
             # Print info during sampling
