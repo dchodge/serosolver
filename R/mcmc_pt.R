@@ -772,18 +772,19 @@ run_MCMC_pt <- function(par_tab,
             swaps <- swaps + parallel_tempering_list$swaps
             potential_swaps <- potential_swaps + 1
             offset <- 1 - offset
-            if (i %% opt_freq == 0) {
-              swap_ratio <- swaps / potential_swaps
-              temperatures <- calibrate_temperatures(temperatures, swap_ratio, min_temp_diff)
-              cat("TEMPERATURE INFO \n")
-              cat("Temperatures: ", temperatures, "\n", sep = "\t")
-              message(cat("----------------------------------------------- \n"))
-              swaps <- potential_swaps <- 0
-              mcmc_list <- Map(function(x, y) modifyList(x, list(temp = y)), mcmc_list, temperatures)
-              steps_list <- lapply(mcmc_list, function(x) x[["steps"]])
-              steps_list_updated <- Map(function(x, y) scale_univariate(x, popt, y, unfixed_pars), steps_list, pcur)
-              mcmc_list <- Map(function(x, y) modifyList(x, list(steps = y)), mcmc_list, steps_list_updated)
-            }
+            swap_ratio <- swaps / potential_swaps
+            temperatures <- calibrate_temperatures(temperatures, swap_ratio, min_temp_diff)
+            cat("TEMPERATURE INFO \n")
+            cat("Temperatures: ", temperatures, "\n", sep = "\t")
+            cat("sample number: ", i, "\n", sep = "\t")
+
+            swaps <- potential_swaps <- 0
+            mcmc_list <- Map(function(x, y) modifyList(x, list(temp = y)), mcmc_list, temperatures)
+           # if (i %% opt_freq == 0) {
+           #   steps_list <- lapply(mcmc_list, function(x) x[["steps"]])
+           #   steps_list_updated <- Map(function(x, y) scale_univariate(x, popt, y, unfixed_pars), steps_list, pcur)
+           #   mcmc_list <- Map(function(x, y) modifyList(x, list(steps = y)), mcmc_list, steps_list_updated)
+           # }
         }
           ##############################
           ## SAVE STEP
@@ -836,20 +837,19 @@ run_MCMC_pt <- function(par_tab,
             mcmc_list
         }
 
-        ##############################
-        ## ADAPTIVE PERIOD
-        ##############################
+ 
         if ((i + i_prev) > (adaptive_period + burnin + i_prev) & (i %% opt_freq) == 0) {
           cat("PARAMETER INFO \n")
           cat("Current posterior : ", posterior, "\n", sep = "\t")
           cat("Current likelihood : ", total_likelihood, "\n", sep = "\t")
           cat("Current prior : ", total_prior_prob, "\n", sep = "\t")
           cat("Current pars : ", current_pars[unfixed_pars], "\n", sep = "\t")
+          cat("Sample no : ", i, "\n", sep = "\t")
 
           # Update step sizes
-          steps_list <- lapply(mcmc_list, function(x) x[["steps"]])
-          steps_list_updated <- Map(function(x, y) scale_univariate(x, popt, y, unfixed_pars), steps_list, pcur)
-          mcmc_list <- Map(function(x, y) modifyList(x, list(steps = y)), mcmc_list, steps_list_updated)
+       #   steps_list <- lapply(mcmc_list, function(x) x[["steps"]])
+        ##  steps_list_updated <- Map(function(x, y) scale_univariate(x, popt, y, unfixed_pars), steps_list, pcur)
+        #  mcmc_list <- Map(function(x, y) modifyList(x, list(steps = y)), mcmc_list, steps_list_updated)
 
           # Get coldest chain info
           infection_history_swap_accept <- mcmc_list[[1]]$infection_history_swap_accept
@@ -886,6 +886,9 @@ run_MCMC_pt <- function(par_tab,
           mcmc_list <- lapply(mcmc_list, function(x) reset_hist_pars(x, reset_indiv))
         }
 
+       ##############################
+        ## ADAPTIVE PERIOD
+        ##############################
         if ((i + i_prev) > (burnin + i_prev) & (i  + i_prev) <= (adaptive_period + burnin + i_prev)) {
           opt_chain[chain_index, ] <- mcmc_list[[1]][["current_pars"]][unfixed_pars]
           if (chain_index %% opt_freq == 0) 
